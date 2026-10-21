@@ -2,49 +2,104 @@
 
 **Lag norsk tale med din egen stemme — direkte på en MacBook Pro med 16 GB RAM.**
 
-Dette er en komplett guide til å kjøre [Fish Audio Drama 3](https://huggingface.co/fishaudio/drama-3)
-på en Mac med Apple Silicon, med målinger, lydklipp du kan høre, og forklaring
-av hvert ord du møter i loggene.
-
-Modellen er laget for NVIDIA-grafikkort og veier 22 GB. Macen din har 16 GB.
-Løsningen er **ekspert-offloading** — de store ekspert-vektene ligger på disk og
-hentes inn mens de brukes. Vi har også vist at man kan **prune bort unødvendige
-eksperter** direkte i modellfilen, slik at mindre av modellen trenger å ligge i
-RAM.
+[Fish Audio Drama 3](https://huggingface.co/fishaudio/drama-3) er laget for
+NVIDIA-grafikkort og veier 22 GB. Macen din har 16 GB. Løsningen er
+**ekspert-offloading**: de store ekspert-vektene ligger på disk og hentes inn
+mens de brukes.
 
 ---
 
 ## Resultatet først
 
-Alt nedenfor er målt på en **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
+Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 
-| Modell | Norsk | Engelsk | Hastighet (RTF) | Minne | Størrelse |
-|---|---|---|---|---|---|
-| **Drama 3 Q4_K_S (full)** | **18–36 % feil** | **6 % feil** | 24,0 | 6,9 GB | 21,8 GiB |
-| Drama 3 Q2_K | 46 % feil | — | 12,7 | 6,9 GB | 15,9 GiB |
-| Drama 3 IQ3_XXS (liten) | 59 % feil | — | 11,2 | 10,3 GB | 9,7 GiB |
-| CosyVoice3 + norsk LoRA | 32 % feil | 12 % feil | **10,8** | ~7 GB | 0,5B |
-| Chatterbox v3 | 59 % feil | 15 % feil | **5,8** | ~1,5 GB | ~1,5 GB |
+### Anbefalt oppsett
 
-**De viktigste funnene:**
+| | |
+|---|---|
+| **Modell** | **Q3_K_S** (18,93 GiB) — nesten Q4_K_S-kvalitet, 2,85 GiB mindre |
+| **Cache** | `expert_cache_size=96` (eksperter per lag i GPU-RAM) |
+| **Parallelle lesninger** | `expert_read_threads=16` |
+| **Hastighet** | **RTF 16,8** mot 25,5 uten parallellisering |
+| **Kvalitet** | 9/10 i høring mot 9,5/10 for Q4_K_S |
 
-1. **Drama 3 snakker norsk.** 18–36 % ordfeilrate, og Whisper identifiserer
-   språket automatisk som norsk.
+**Sett opp alt med ett skript:**
 
-2. **Den lille modellen snakker ikke norsk.** Den ble destillert på japansk og
-   engelsk, og norsk blir rot: «grønne og gule» blir «grunn og god», «sirkel på
-   25,5 cm» blir «cirken på 2 utplaner skjermvektet 5 cm».
+```bash
+python3 scripts/oppsett.py --info      # hva anbefales på din maskin
+python3 scripts/oppsett.py --test      # mål og finn beste innstilling
+python3 scripts/oppsett.py --installer # skriv konfigurasjonen
+```
 
-3. **CosyVoice3 og Chatterbox faller ut av engelsk.** Med en norsk
-   referansestemme ga CosyVoice3 engelsk med svensk uttale, og Chatterbox ga
-   engelsk med norsk uttale. Drama 3 holdt seg på engelsk. Se
-   [`docs/RAPPORT.md`](docs/RAPPORT.md).
+Full guide: **[SETUP.md](SETUP.md)**.
 
-4. **Pruning virker teknisk, men ødelegger kvaliteten uten trening.** Vi kuttet
-   modellen fra 256 til 100 eksperter per lag direkte i GGUF-filen: 21,8 GiB →
-   12,5 GiB og **6,3x raskere**. Men uten router-refit og destillasjon
-   (som krever en 96 GB GPU) blir modellen ødelagt. Vi dokumenterer funnet
-   ærlig i [`docs/PRUNING.md`](docs/PRUNING.md).
+### De viktigste funnene
+
+**1. Hastighet kom fra cachen, ikke fra modellen.**
+
+Vi startet med `expert_cache_size=8` — nøyaktig så stor som ett tokens
+ekspertsett, siden Drama 3 velger 8 eksperter per lag. Da ble hvert token
+tvunget til en disklesning.
+
+| cache | treffrate | lest | RTF |
+|---|---|---|---|
+| 8 | 20 % | 111,6 GB | 44,2 |
+| 32 | 42 % | 57,3 GB | 25,5 |
+| 64 | 50 % | — | — |
+| 96 | 64 % | 36,0 GB | 19,9 |
+
+**2. Parallelle disklesninger var den største enkeltgevinsten.**
+
+Vi leste ekspertene sekvensielt og fikk 327 MB/s av en disk som klarer
+2–3 GB/s. Med 16 tråder parallelt:
+
+| tråder | RTF | disklesning |
+|---|---|---|
+| 1 | 25,5 | 175,4 s |
+| 4 | 19,4 | 122,7 s |
+| 8 | 17,3 | 102,9 s |
+| **16** | **16,8** | **98,3 s** |
+
+**RTF 25,5 → 16,8 (−34 %), med bit-identisk utdata.**
+
+**3. Drama 3 snakker norsk.** En norsk ASR (NB AI Labs wav2vec2) skriver ut
+riktig norsk, og Whisper finner språket automatisk.
+
+**4. Kvalitetsforskjellene mellom kvantiseringene er små — målingen vår
+var feil.** Vi brukte en for lang referansetekst og et for svakt
+måleverktøy, og fant at Q2_K var «amerikansk». Med riktig oppsett er
+forskjellene 1–2 ord per setning. Se [`docs/RETTING.md`](docs/RETTING.md).
+
+**5. Det er ingen liten «norsk-ekspert»-gruppe.** Én norsk setning bruker
+193–255 av 256 eksperter i hvert lag. Se [`docs/ROUTING.md`](docs/ROUTING.md).
+
+**6. Pruning virker teknisk, men ødelegger kvaliteten uten trening.** 21,8 →
+12,5 GiB og 6,3× raskere, men modellen blir ødelagt uten router-refit og
+destillasjon (som krever en 96 GB GPU). Se [`docs/PRUNING.md`](docs/PRUNING.md).
+
+### Modellene
+
+| Modell | Fil | Kvalitet | RTF | Merknad |
+|---|---|---|---|---|
+| **Q3_K_S** | 18,93 GiB | **9/10** | 16,8 | **Anbefalt** |
+| Q4_K_S | 21,78 GiB | **9,5/10** | 21,3 | Best kvalitet |
+| Q2_K | 15,88 GiB | 7/10 | 14,4 | /r/ går tapt |
+| F32-routers | 22,97 GiB | 9,4/10 | — | Ingen bedre enn Q4_K_S |
+| drama3-small | 9,74 GiB | 59 % WER | 11,2 | Destillert for japansk/engelsk |
+
+`python3 scripts/oppsett.py --modeller` viser hvilken modell som passer
+**din** maskin.
+
+### Sammenligning med andre modeller
+
+| Modell | Norsk | Engelsk | RTF |
+|---|---|---|---|
+| **Drama 3** | **9–9,5/10 i høring** | holder språket | 16,8 |
+| CosyVoice3 + norsk LoRA | 8/10 i høring | mister språket | 10,8 |
+| Chatterbox v3 | dårlig | mister språket | 5,8 |
+
+Detaljer: [`docs/RAPPORT.md`](docs/RAPPORT.md), høring:
+[`docs/LYTTETEST.md`](docs/LYTTETEST.md).
 
 ---
 
@@ -61,7 +116,21 @@ Alt nedenfor er målt på en **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1
 9. [Veien videre](#veien-videre)
 10. [Kilder og prosjekter](#kilder-og-prosjekter)
 
----
+### Dokumentasjon
+
+| Dokument | Innhold |
+|---|---|
+| [SETUP.md](SETUP.md) | **Oppstartsguide for en ny Mac** |
+| [docs/RAPPORT.md](docs/RAPPORT.md) | Alle målinger, metoder og begrensninger |
+| [docs/LYTTETEST.md](docs/LYTTETEST.md) | Høring, og hva kvantiseringen faktisk gjør |
+| [docs/ROUTING.md](docs/ROUTING.md) | Ekspertruting: hvor er de norske ekspertene? |
+| [docs/EXPERTCACHE.md](docs/EXPERTCACHE.md) | Cachen: treffrate, RAM og hastighet |
+| [docs/PARALLELLESNING.md](docs/PARALLELLESNING.md) | Parallelle ekspertlesninger |
+| [docs/MIXER.md](docs/MIXER.md) | Per-lag blandet presisjon |
+| [docs/LAGDROPUTING.md](docs/LAGDROPUTING.md) | Kutt i lag: hva fungerer |
+| [docs/PINNING.md](docs/PINNING.md) | Låsing av varme eksperter |
+| [docs/RETTING.md](docs/RETTING.md) | Målefeilen vi fant og rettet |
+| [docs/VEIEN_VIDERE.md](docs/VEIEN_VIDERE.md) | Hva som gjenstår |
 
 ## Hva du trenger
 

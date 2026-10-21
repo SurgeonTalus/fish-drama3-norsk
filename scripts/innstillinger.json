@@ -1,0 +1,148 @@
+{
+  "versjon": "2026-10-21",
+  "kommentar": "Alle tall er malt på M1 Pro 16 GB, 10 kjerner, macOS 27.0.1, audio.cpp 0.9.2-drama3-base-small (Metal). Oppdater denne filen naar nye resultater kommer; oppsett.py leser den og tar seg av resten.",
+
+  "maskin": {
+    "ram_gb": 16,
+    "kjerner": 10,
+    "cpu": "Apple M1 Pro",
+    "macos": "27.0.1",
+    "runtime": "audio.cpp 0.9.2-drama3-base-small (Metal)"
+  },
+
+  "konstanter": {
+    "per_ekspert_mb_per_lag": 1.29,
+    "lag": 40,
+    "top_k": 8,
+    "fast_del_mb": 6156,
+    "overhead_mb": 7900,
+    "peak_per_cache_mb": 25.8,
+    "kommentar": "peak_rss_mb ~ 7900 + 25.8 * expert_cache_size, malt paa Q3_K_S. Annet for Q4_K_S har mindre fast del (4,9 GiB), saa der kan cache-storrelsen vaere noe storre."
+  },
+
+  "modeller": [
+    {
+      "navn": "Q3_K_S",
+      "fil": "drama-3-backbone-8bit-experts-Q3_K_S.gguf",
+      "kilder": "Jmica/Drama-3-GGUF",
+      "størrelse_gib": 18.93,
+      "fast_del_gib": 6.01,
+      "kvalitet": "9/10 i høring",
+      "anm": "Anbefalt standard. Nesten Q4_K_S-kvalitet, 3 GiB mindre, raskere.",
+      "min_ram_gb": 16
+    },
+    {
+      "navn": "Q4_K_S",
+      "fil": "drama-3-backbone-4bit-experts-Q4_K_S.gguf",
+      "kilder": "Jmica/Drama-3-GGUF",
+      "størrelse_gib": 21.78,
+      "fast_del_gib": 4.87,
+      "kvalitet": "9,5/10 i høring - best kvalitet",
+      "anm": "Velg denne hvis kvalitet trumfer størrelse. 4-bit dense gir mindre fast del, saa storre cache passer.",
+      "min_ram_gb": 16
+    },
+    {
+      "navn": "Q2_K",
+      "fil": "drama-3-backbone-8bit-experts-Q2_K.gguf",
+      "kilder": "Jmica/Drama-3-GGUF",
+      "størrelse_gib": 15.88,
+      "fast_del_gib": 6.01,
+      "kvalitet": "7/10 i høring - /r/ gaar tapt",
+      "anm": "Minst modell. Velg bare hvis du trenger minst mulig fil.",
+      "min_ram_gb": 16
+    },
+    {
+      "navn": "F32-routers",
+      "fil": "drama-3-backbone-8bit-F32-routers-experts-Q4_K_S.gguf",
+      "kilder": "Jmica/Drama-3-GGUF",
+      "størrelse_gib": 22.97,
+      "fast_del_gib": 6.01,
+      "kvalitet": "9,4/10 - ingen bedre enn Q4_K_S",
+      "anm": "Samme kvalitet som Q4_K_S, men 1,2 GiB storre. Ikke anbefalt.",
+      "min_ram_gb": 16
+    },
+    {
+      "navn": "drama3-small",
+      "fil": "drama3-small-IQ3_XXS.gguf",
+      "kilder": "pentacoxian-dev/drama3-small-GGUF",
+      "størrelse_gib": 9.74,
+      "fast_del_gib": 4.1,
+      "kvalitet": "59 % WER norsk - ubrukelig i norsk",
+      "anm": "Destillert for japansk og engelsk. Ikke for norsk. Beholdes bare som referanse.",
+      "min_ram_gb": 12
+    }
+  ],
+
+  "anbefalinger": {
+    "8": {
+      "modell": "Q4_K_S",
+      "expert_cache_size": 16,
+      "expert_read_threads": 4,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "16 GB eller mindre: 4-bit dense (4,9 GiB fast del) gir plass til en liten cache. Kjent Q3_K_S er for stor."
+    },
+    "12": {
+      "modell": "Q4_K_S",
+      "expert_cache_size": 32,
+      "expert_read_threads": 4,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "12 GB: liten cache, 4 tråder."
+    },
+    "16": {
+      "modell": "Q3_K_S",
+      "expert_cache_size": 96,
+      "expert_read_threads": 16,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "16 GB malt: cache 96 med 16 parallelle lesninger ga RTF 16,8. Cache 128 ga swap-hell, saa 96 er taket."
+    },
+    "24": {
+      "modell": "Q3_K_S",
+      "expert_cache_size": 160,
+      "expert_read_threads": 16,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "24 GB: samme modell, storre cache. Ekstrapolert fra 16 GB, ikke malt ennå."
+    },
+    "32": {
+      "modell": "Q3_K_S",
+      "expert_cache_size": 224,
+      "expert_read_threads": 16,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "32 GB: nesten hele ekspertbanken i RAM. Ekstrapolert, ikke malt ennå."
+    },
+    "64": {
+      "modell": "Q3_K_S",
+      "expert_cache_size": 256,
+      "expert_read_threads": 16,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "64 GB: hele ekspertbanken i RAM, ingen disklesninger i det hele tatt."
+    }
+  },
+
+  "resultater": [
+    {"kjøring": "cache 32, 1 tråd", "rtf": 25.5, "treff": 0.423, "disk_ms": 175400, "wall_ms": 235900, "merknad": "utgangspunkt"},
+    {"kjøring": "cache 32, 4 tråder", "rtf": 19.4, "treff": 0.423, "disk_ms": 122700, "wall_ms": 179200},
+    {"kjøring": "cache 32, 8 tråder", "rtf": 17.3, "treff": 0.423, "disk_ms": 102900, "wall_ms": 159500},
+    {"kjøring": "cache 32, 16 tråder", "rtf": 16.8, "treff": 0.423, "disk_ms": 98300, "wall_ms": 154900, "merknad": "beste målte RTF"},
+    {"kjøring": "cache 96, 1 tråd", "rtf": 19.9, "treff": 0.638, "disk_ms": 109600, "wall_ms": 183700},
+    {"kjøring": "cache 96, 8 tråder", "rtf": 19.7, "treff": 0.638, "disk_ms": 74100, "wall_ms": 182200, "merknad": "disk raskere, men wall uendret - flaskehalsen flyttet"},
+    {"kjøring": "cache 32, 8 tråder, pinning topp-32", "rtf": 23.8, "treff": 0.385, "disk_ms": 159400, "wall_ms": 219500, "merknad": "7 % raskere, bit-identisk utdata"},
+    {"kjøring": "cache 96, 8 tråder, pinning topp-32", "rtf": null, "merknad": "ugyldig - kjørte parallelt med annen måling"}
+  ],
+
+  "installasjon": {
+    "runtime_repo": "https://github.com/0xShug0/audio.cpp",
+    "runtime_krev": "audio.cpp 0.9.2-drama3-base-small, bygget med Metal",
+    "modell_repo": "https://huggingface.co/Jmica/Drama-3-GGUF",
+    "session_options": [
+      "fish_drama3.disk_experts=true",
+      "fish_drama3.expert_cache_size=96",
+      "fish_drama3.expert_read_threads=16",
+      "fish_drama3.cpu_expert_layers=0",
+      "fish_drama3.context_length=2048",
+      "fish_drama3.codec_backend=cpu",
+      "fish_drama3.codec_encoder_chunk_samples=65536"
+    ],
+    "referansestemme": "audio/referanse_stemme.wav (8 s, 44,1 kHz mono)",
+    "referansetekst": "audio/referansetekst_8s.txt (maa matche klippen eksakt)"
+  }
+}
