@@ -95,12 +95,46 @@ Skript: `scripts/maal_norsk.py` (én fil), `scripts/maal_sett.py` (hele settet).
 Alle modeller genererte **samme setning**, med samme referansestemme, samme
 seed og samme maskin. `expert_cache_size=32`.
 
-| Modell | Fil | WER | RTF |
-|---|---|---|---|
-| Drama 3 Q2_K | 15,88 GiB | **6,1 %** | 14,4 |
-| Drama 3 Q3_K_S | 18,93 GiB | 9,1 % | **22,8** |
-| Drama 3 Q3_K_S (cache 64) | 18,93 GiB | 9,1 % | 21,5 |
-| Drama 3 Q4_K_S | 21,78 GiB | 12,1 % | 26,3 |
+| Modell | Fil | setning 1 | setning 2 | setning 3 | snitt | RTF |
+|---|---|---|---|---|---|---|
+| **Drama 3 Q4_K_S** | 21,78 GiB | 9,4 % | 22,2 % | 21,7 % | **17,8 %** | **16,97** |
+| Drama 3 Q3_K_S | 18,93 GiB | 3,1 % | — | — | — | 15,9 |
+| Drama 3 Q2_K | 15,88 GiB | 6,2 % | — | — | — | 22,2 |
+
+Q4_K_S-tallene er målt med **anbefalt konfigurasjon**
+(`expert_cache_size=64`, `expert_read_threads=16`), tre setninger, peak
+9 512 MB.
+
+### Hvorfor WER ikke kan skille modellene
+
+Se på hva de faktiske feilene er:
+
+> *«Hun kjøpte en kake på bakeriet på vei hjem. Den var fersk og hadde tytte
+> **kirsebær** på toppen.»*
+> → *«vi kjøpte en kake … det trykte **kirstibær** på toppen»*
+
+> *«Fisken lå i vannet og ventet … det snart skulle bli **middag**.»*
+> → *«… det snart skulle bli **minda**»*
+
+Feilene ligger i **sammensatte norske ord** og i **dialektformer**
+(«minda» er den muntlige formen i den talte dialekten). Begge er ting en
+norsk ASR er dårlig på, og ingen av dem sier noe om modellens kvalitet.
+
+**Derfor er høring den eneste gyldige kvalitetsmålingen her**, og WER-tallene
+i denne rapporten skal leses som *måleverktøyets* begrensning, ikke som
+modellenes feilrate.
+
+### Høring
+
+| Modell | Vurdering |
+|---|---|
+| **Drama 3 Q4_K_S** | **9,5 / 10** — «enormously convincing», utmerket norsk |
+| Drama 3 Q3_K_S | 9 / 10 — bedre enn CosyVoice, men flat n i «inn» |
+| Drama 3 Q2_K | 7 / 10 — /r/ går tapt, høres ut som taleforstyrrelse |
+
+**Q4_K_S er valgt.** 2,85 GiB større enn Q3_K_S, men 0,5 poeng bedre.
+
+---
 
 **Forskjellene er 1–2 ord av 32 — altså støy, ikke kvalitet.** Transkripsjonene
 er nesten identiske:
