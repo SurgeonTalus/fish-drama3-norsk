@@ -124,6 +124,8 @@ Dette stemmer med det generelle inntrykket:
 - CosyVoice omtales ofte med forbehold. CosyVoice 2 reduserte uttaksfeilraten
   med 30–50 % mot v1, men videre forbedring krever kvantisering av
   projeksjonene, som gir alvorlig kvalitetstap.
+- I r/LocalLLaMA beskrives CosyVoice 3 med «audio is not very clean, occasional
+  clicks, noise».
 - Chatterbox regnes som enklere og lettere å kjøre, med mindre
   ekspresjonskontroll.
 
