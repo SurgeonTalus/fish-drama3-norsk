@@ -15,13 +15,19 @@ set -u
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
+# Runtime (audio.cpp) ligger i en egen katalog.
+RUNTIME="${RUNTIME:-$HOME/fish_drama3_35b_exert_offloading}"
+BIN="$RUNTIME/bin/audiocpp_cli"
+SPEC="${SPEC_OVERRIDE:-$RUNTIME/spec_override}"
+
 UT="$1"; shift
 mkdir -p "$UT"
 
 # Vanlig norsk bokmaal, ingen vanskelige ord, ingen tall.
 # (Tall og sjarvord var nettopp der Whisper small bommet, uansett modell.)
 TXT="I går gikk jeg en tur langs elven sammen med min sønn. Vi snakket om sommerferien og om det nye huset vi skal flytte inn i. Det skal bli fint, sa synes jeg."
-REF="I dag skal vi lage et ukebladportrett med collage! Men hva er egentlig et ukebladportrett? Et portrett er et bilde av et menneske. Når vi lager et ukebladportrett, bruker vi bilder fra blader til å sette sammen et nytt ansikt."
+REF_TXT="${REF_TXT:-$ROOT/audio/referansetekst_8s.txt}"
+REF="$(cat "$REF_TXT")"
 
 i=0
 for M in "$@"; do
@@ -32,10 +38,10 @@ for M in "$@"; do
     echo "    størrelse: $(du -h "$M" | cut -f1)"
 
     START=$(date +%s)
-    ./bin/audiocpp_cli --task clon --family fish_drama3 --backend metal --mode offline \
-        --model-spec-override "${SPEC_OVERRIDE:-spec_override}" \
+    "$BIN" --task clon --family fish_drama3 --backend metal --mode offline \
+        --model-spec-override "$SPEC" \
         --model "$M" \
-        --voice-ref "${REF_WAV:-audio/referanse_stemme.wav}" \
+        --voice-ref "${REF_WAV:-$ROOT/audio/referanse_stemme.wav}" \
         --request-option "reference_text=$REF" \
         --text "$TXT" \
         --max-tokens 700 --seed 42 --threads 8 \

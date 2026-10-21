@@ -14,6 +14,12 @@ set -u
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
+# Runtime (audio.cpp) ligger i en egen katalog. Sett RUNTIME=... for aa
+# peke pa en annen installasjon.
+RUNTIME="${RUNTIME:-$HOME/fish_drama3_35b_exert_offloading}"
+BIN="$RUNTIME/bin/audiocpp_cli"
+SPEC="${SPEC_OVERRIDE:-$RUNTIME/spec_override}"
+
 MODELL="${1:?bruk: kjor_test.sh <modell.gguf> <tag> [utmappe]}"
 TAG="${2:?bruk: kjor_test.sh <modell.gguf> <tag> [utmappe]}"
 UT="${3:-$ROOT/output/$TAG}"
@@ -30,13 +36,13 @@ echo "  ref-txt: $REF_TXT"
 echo ""
 
 n=0
-while IFS= read -line TEKST; do
+while IFS= read -r TEKST; do
     [ -z "$TEKST" ] && continue
     n=$((n + 1))
     WAV="$UT/${TAG}_s${n}.wav"
     START=$(date +%s)
-    ./bin/audiocpp_cli --task clon --family fish_drama3 --backend metal --mode offline \
-        --model-spec-override "${SPEC_OVERRIDE:-spec_override}" \
+    "$BIN" --task clon --family fish_drama3 --backend metal --mode offline \
+        --model-spec-override "$SPEC" \
         --model "$MODELL" \
         --voice-ref "$REF_LYD" \
         --request-option "reference_text=$(cat "$REF_TXT")" \
