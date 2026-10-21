@@ -79,6 +79,11 @@ Se `docs/LYTTETEST.md` for høring, og `docs/RAPPORT.md` for tabellene.
 
 ## Resultatet: uten trening ødelegger lag-droputing modellen
 
+### Hva som ble kuttet i testen
+
+Beholdt: lag **0-7, 12-15, 20-23, 28-31, 36-39** (24 lag).
+Kuttet: lag **8-11, 16-19, 24-27, 32-35** (16 lag).
+
 **Testet:** 24 lag, grupper {0, 1, 3, 5, 7, 9} — 13,21 GiB, maks hopp 4 lag,
 alle 10 full-attention-lag beholdt, lag 0/1/2 og 36 beholdt.
 
@@ -132,3 +137,36 @@ fordelingene:
 | 20 | {0,2,4,6,9} | 8 | ja | 11,78 GiB |
 | 20 | {0,2,4,6,8} | 4 | mister 36 | 11,78 GiB |
 | 28 | {0,1,2,4,6,8,9} | 4 | ja | 14,5 GiB |
+
+### To byggefeil som viste seg underveis
+
+Begge var feil i verktøyet, ikke i modellen:
+
+1. **«unsupported Drama 3 hybrid layer layout»** — runtime-en krever at
+   lagtypen følger *posisjonen*:
+
+   ```cpp
+   const auto expected = (layer + 1) % 4 == 0 ? "full_attention" : "linear_attention";
+   ```
+
+   Lag kan derfor bare kuttes i hele grupper paa fire. Verktøyet nekter na
+   delvise grupper.
+
+2. **«tensor shape mismatch»** — `audiocpp.tensor_shapes` er en flat liste
+   indeksert etter den *opprinnelige* tensor-rekkefolgen. Naar lag
+   fjernes, maa cursoren foelge originalen og hoppe over segmentene til de
+   kuttede lagene, ellers forskyves shapes for hver tensor etter det
+   foerste kuttet laget.
+
+### Den minimale modellen under restriksjonen
+
+Aldri to kuttede lag paa rad, og alle 10 full-attention-lag med. I hver
+gruppe paa tre linear-lag kan bare det **midtre** laget beholdes alene,
+fordi de to andre ellers ville blitt kuttet paa rad. Det gir et unikt
+minimalt sett: **lag 1, 3, 5, ..., 39 — 20 lag, 11,77 GiB.**
+
+Men det taper lag 0, 1, 2 og 36, som er nettopp de fire lagene
+drama3-small peker ut. Med 0, 1, 2 og 36 med: 23 lag, 12,84 GiB. Med
+0, 2 og 36: 22 lag, 12,48 GiB.
+
+Beregning: `scripts/lag_budsjett.py`.
