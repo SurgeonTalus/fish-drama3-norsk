@@ -20,7 +20,8 @@ Alt nedenfor er målt på en **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1
 
 | Modell | Norsk | Engelsk | Hastighet (RTF) | Minne | Størrelse |
 |---|---|---|---|---|---|
-| **Drama 3 Q4_K_S (full)** | **18–36 % feil** | **6 % feil** | 28,8 | 6,9 GB | 21,8 GiB |
+| **Drama 3 Q4_K_S (full)** | **18–36 % feil** | **6 % feil** | 24,0 | 6,9 GB | 21,8 GiB |
+| Drama 3 Q2_K | 46 % feil | — | 12,7 | 6,9 GB | 15,9 GiB |
 | Drama 3 IQ3_XXS (liten) | 59 % feil | — | 11,2 | 10,3 GB | 9,7 GiB |
 | CosyVoice3 + norsk LoRA | 32 % feil | 12 % feil | **10,8** | ~7 GB | 0,5B |
 | Chatterbox v3 | 59 % feil | 15 % feil | **5,8** | ~1,5 GB | ~1,5 GB |
@@ -191,6 +192,7 @@ Hør selv. Alle filene ligger i `audio/`.
 | `norsk_full_q4k.wav` | Drama 3 full, norsk — **riktig** |
 | `valid_full_offload.wav` | Drama 3 full, norsk, målt med disk-offloading (RTF 24,0) |
 | `norsk_small_ubrukelig.wav` | Drama 3 liten, norsk — **ubrukelig** |
+| `q2k_norsk.wav` | Drama 3 Q2_K, norsk — brukbart, men dårligere enn Q4_K_S |
 | `cosyvoice_norsk.wav` | CosyVoice3 + norsk LoRA, norsk |
 | `chatterbox_norsk.wav` | Chatterbox v3, norsk |
 | `engelsk_full_q4k.wav` | Drama 3 full, engelsk — ren engelsk |

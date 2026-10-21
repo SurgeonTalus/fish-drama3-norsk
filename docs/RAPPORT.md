@@ -13,6 +13,7 @@ Fire modeller ble testet med **samme tekst**, **samme referansestemme**,
 | Modell | Norsk (WER) | Engelsk (WER) | Auto-språk (engelsk) | RTF | Peak RAM |
 |---|---|---|---|---|---|
 | **Drama 3 Q4_K_S (full)** | **18–36 %** | **6 %** | `en` ✓ | 24,0 | 7,7 GB |
+| Drama 3 Q2_K | 46 % | — | — | 12,7 | 7,7 GB |
 | Drama 3 IQ3_XXS (liten) | 59 % | — | — | 11,2 | 10,3 GB |
 | CosyVoice3 + norsk LoRA | 32 % | 12 % | `sv` ✗ | 10,8 | ~7 GB |
 | Chatterbox v3 | 59 % | 15 % | `no` ✗ | 5,8 | ~1,5 GB |
@@ -54,6 +55,14 @@ tvunget. Det er avslørende for aksentdrift.
 Begge er korrekt norsk. Forskjellen er tallet «25,5 cm» — den ene kjøringen
 fikk det riktig, den andre fikk «5-12 cm». Gjennomsnittet (~27 %) er det
 riktige tallet å planlegge med.
+
+**Drama 3 Q2_K — 45,5 %**
+
+> Ma et A4-ark i grønne og gulene i angse. Ma en stor cirkel på 55 cm og fyl
+> hele cirkelen med ferdige.
+
+Auto-språk er fortsatt `no`, så dette er norsk — men dårligere enn Q4_K_S.
+Merk at Q2_K ikke kan kjøres uten disk-offloading på 16 GB.
 
 **CosyVoice3 + norsk LoRA — 31,8 %**
 
@@ -125,12 +134,29 @@ Dette stemmer med det generelle inntrykket:
 RTF = real-time factor = wall-sekunder ÷ lydsekunder. **Lavere er bedre.**
 RTF 1,0 betyr «i sanntid».
 
-| Modell | RTF | Tid for 9 s norsk | Disk lest for 33 s |
+| Modell | RTF | Disk lest for 33 s | Minne |
 |---|---|---|---|
-| Chatterbox v3 | **5,8** | 52 s | 0 |
-| CosyVoice3 + LoRA | **10,8** | 97 s | 0 |
-| Drama 3 IQ3_XXS | 11,2 | 100 s | 0 |
-| Drama 3 Q4_K_S | 24,0–28,8 | 216–254 s | 351 GB |
+| Chatterbox v3 | **5,8** | 0 | ~1,5 GB |
+| CosyVoice3 + LoRA | **10,8** | 0 | ~7 GB |
+| Drama 3 IQ3_XXS | 11,2 | 0 | 10,3 GB |
+| Drama 3 Q2_K | 12,7 | 0 | 7,7 GB |
+| Drama 3 Q4_K_S | 24,0 | 351 GB | 7,7 GB |
+| Drama 3 Q4_K_S, pruned til 100 eksperter | **3,81** | 192 GB | 7,7 GB |
+
+### Drama 3 uten offloading dør — også i den minste varianten
+
+Vi kjørte Drama 3 Q2_K (15,88 GiB) **uten** `disk_experts`, altså med hele
+modellen i RAM:
+
+```
+error: Insufficient Memory (00000008:kIOGPUCommandBufferCallbackErrorOutOfMemory)
+audiocpp_cli failed: Drama 3 tower prefill computation failed
+```
+
+Selv 15,88 GiB er for mye. **Ekspert-offloading er ikke en optimalisering på
+16 GB — det er en forutsetning.** Samme gjelder den prunede modellen ved
+100 eksperter (12,52 GiB): kjørt resident ble den avsluttet uten
+feilmelding.
 
 ### Hvorfor Drama 3 er tregest
 
