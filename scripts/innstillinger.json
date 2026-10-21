@@ -161,6 +161,52 @@
       "wall_ms": 159800
     },
     {
+      "kjøring": "cache 32, 1 tråd",
+      "rtf": 25.5,
+      "treff": 0.423,
+      "lest_gb": 57.3,
+      "disk_ms": 175400,
+      "last_ms": 14600,
+      "wall_ms": 235900,
+      "merknad": "utgangspunkt"
+    },
+    {
+      "kjøring": "cache 32, 4 tråder",
+      "rtf": 19.4,
+      "treff": 0.423,
+      "disk_ms": 122700,
+      "wall_ms": 179200
+    },
+    {
+      "kjøring": "cache 32, 8 tråder",
+      "rtf": 17.3,
+      "treff": 0.423,
+      "disk_ms": 102900,
+      "wall_ms": 159500
+    },
+    {
+      "kjøring": "cache 32, 16 tråder",
+      "rtf": 16.8,
+      "treff": 0.423,
+      "disk_ms": 98300,
+      "wall_ms": 154900
+    },
+    {
+      "kjøring": "cache 32, 32 tråder",
+      "rtf": 17.6,
+      "treff": 0.423,
+      "disk_ms": 103200,
+      "wall_ms": 162500,
+      "merknad": "32 tråder er for mange"
+    },
+    {
+      "kjøring": "cache 64, 8 tråder",
+      "rtf": 17.3,
+      "treff": 0.553,
+      "disk_ms": 95300,
+      "wall_ms": 159800
+    },
+    {
       "kjøring": "cache 64, 16 tråder",
       "rtf": 15.9,
       "treff": 0.553,
@@ -202,6 +248,23 @@
       "disk_ms": 159400,
       "wall_ms": 219500,
       "merknad": "7 % raskere, bit-identisk utdata"
+    },
+    {
+      "kjøring": "cache 48, 16 tråder",
+      "rtf": 16.9,
+      "treff": 0.495,
+      "lest_gb": 50.2,
+      "disk_ms": 100600,
+      "wall_ms": 156300
+    },
+    {
+      "kjøring": "Q4_K_S cache 32, 16 tråder",
+      "rtf": 18.7,
+      "treff": 0.447,
+      "lest_gb": 71.1,
+      "disk_ms": 119000,
+      "wall_ms": 171300,
+      "merknad": "Q4_K_S har 4-bit dense (mindre fast del) men storre eksperter - mer trafikk"
     }
   ],
   "installasjon": {

@@ -18,9 +18,9 @@ Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 | | |
 |---|---|
 | **Modell** | **Q3_K_S** (18,93 GiB) — nesten Q4_K_S-kvalitet, 2,85 GiB mindre |
-| **Cache** | `expert_cache_size=96` (eksperter per lag i GPU-RAM) |
+| **Cache** | `expert_cache_size=64` (eksperter per lag i GPU-RAM) |
 | **Parallelle lesninger** | `expert_read_threads=16` |
-| **Hastighet** | **RTF 16,8** mot 25,5 uten parallellisering |
+| **Hastighet** | **RTF 15,9** mot 25,5 uten parallellisering |
 | **Kvalitet** | 9/10 i høring mot 9,5/10 for Q4_K_S |
 
 **Sett opp alt med ett skript:**
@@ -41,12 +41,12 @@ Vi startet med `expert_cache_size=8` — nøyaktig så stor som ett tokens
 ekspertsett, siden Drama 3 velger 8 eksperter per lag. Da ble hvert token
 tvunget til en disklesning.
 
-| cache | treffrate | lest | RTF |
+| cache | treffrate | lest | RTF (16 tråder) |
 |---|---|---|---|
-| 8 | 20 % | 111,6 GB | 44,2 |
-| 32 | 42 % | 57,3 GB | 25,5 |
-| 64 | 50 % | — | — |
-| 96 | 64 % | 36,0 GB | 19,9 |
+| 8 | 20 % | 111,6 GB | 44,2 (1 tråd) |
+| 32 | 42 % | 57,3 GB | 16,8 |
+| **64** | **55 %** | **44,5 GB** | **15,9** |
+| 96 | 64 % | 36,0 GB | 19,7 (8 tråder) |
 
 **2. Parallelle disklesninger var den største enkeltgevinsten.**
 
@@ -60,7 +60,9 @@ Vi leste ekspertene sekvensielt og fikk 327 MB/s av en disk som klarer
 | 8 | 17,3 | 102,9 s |
 | **16** | **16,8** | **98,3 s** |
 
-**RTF 25,5 → 16,8 (−34 %), med bit-identisk utdata.**
+**RTF 25,5 → 16,8 (−34 %) med bit-identisk utdata.** Med cache 64
+kommer vi ned i **RTF 15,9 (−38 %)**. Cache 96 blir dårligere igjen:
+opplastingen til GPU-en blir flaskehals (41,6 s).
 
 **3. Drama 3 snakker norsk.** En norsk ASR (NB AI Labs wav2vec2) skriver ut
 riktig norsk, og Whisper finner språket automatisk.
