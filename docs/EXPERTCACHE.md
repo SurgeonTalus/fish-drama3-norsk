@@ -46,27 +46,29 @@ Samme måling på drama3-small:
 
 Kurven hadde ikke flatet ut ved 32.
 
-## Hva det koster i RAM
+## Hva cache-størrelsen betyr i praksis
 
-Målt fra filene: én ekspert per lag = 3 projeksjoner × 2048 × 512 elementer.
+### Hva cache-størrelsen betyr
 
-| Profil | per ekspert per lag | cache 32 | cache 64 | cache 96 | cache 128 |
-|---|---|---|---|---|---|
-| Q4_K_S (4-bit dense) | 1,69 MB | 2,11 GB | 4,22 GB | 6,33 GB | 8,44 GB |
-| Q3_K_S (8-bit dense) | 1,29 MB | 1,61 GB | 3,22 GB | 4,83 GB | 6,45 GB |
-| Q2_K (8-bit dense) | 0,98 MB | 1,23 GB | 2,46 GB | 3,69 GB | 4,92 GB |
+| Modell | Fil | `expert_cache_size` | Eksperter i RAM | RAM totalt | På SSD igjen | Treffrate | Lest fra SSD | **RTF** |
+|---|---|---|---|---|---|---|---|---|
+| Miksen | 18.94 GiB | **32** eksperter/lag | 1.40 GB | 6.0 GB | 12.96 GiB | 46 % | 61 GB | **21.6** |
+| Q2_K | 15.88 GiB | **32** eksperter/lag | 1.23 GB | 7.2 GB | 8.62 GiB | 38 % | 43 GB | **22.2** |
+| Q3_K_S | 18.93 GiB | **32** eksperter/lag | 1.61 GB | 7.6 GB | 11.28 GiB | 40 % | 63 GB | **22.8** |
+| Q3_K_S | 18.93 GiB | **64** eksperter/lag | 3.23 GB | 9.2 GB | 9.67 GiB | 50 % | 49 GB | **21.5** |
+| Q4_K_S | 21.78 GiB | **8** eksperter/lag | 0.53 GB | 5.4 GB | 16.35 GiB | 20 % | 112 GB | **44.2** |
+| Q4_K_S | 21.78 GiB | **16** eksperter/lag | 1.06 GB | 5.9 GB | 15.82 GiB | 30 % | 98 GB | **27.4** |
+| Q4_K_S | 21.78 GiB | **32** eksperter/lag | 2.11 GB | 7.0 GB | 14.77 GiB | 40 % | 82 GB | **26.4** |
+| Q4_K_S | 21.78 GiB | **64** eksperter/lag | 4.22 GB | 9.1 GB | 12.65 GiB | 50 % | 62 GB | **21.3** |
 
-Modellen trenger ellers ~7,2 GB (målt peak 7,7 GB ved cache 8).
+### Modellene side om side (cache 32)
 
-| | cache 64 | cache 96 | cache 128 |
-|---|---|---|---|
-| Q4_K_S | 11,2 GB ✓ | 13,5 GB ⚠️ | 15,6 GB ✗ |
-| Q3_K_S | 10,4 GB ✓ | 12,7 GB ✓ | 14,5 GB ⚠️ |
-| Q2_K | 9,7 GB ✓ | 11,1 GB ✓ | 12,9 GB ✓ |
-
-**Q3_K_S kan altså holde 96 eksperter per lag i RAM med god margin.**
-Det er 24 % mindre data per miss enn Q4_K_S, så samme treffrate koster
-mindre I/O.
+| Modell | Fil | RAM (eksperter) | RAM totalt | På SSD | Treffrate | Lest fra SSD | **RTF** |
+|---|---|---|---|---|---|---|---|
+| Miksen | 18.94 GiB | 1.40 GB | 6.0 GB | 12.96 GiB | 46 % | 61 GB | **21.6** |
+| Q2_K | 15.88 GiB | 1.23 GB | 7.2 GB | 8.62 GiB | 38 % | 43 GB | **22.2** |
+| Q3_K_S | 18.93 GiB | 1.61 GB | 7.6 GB | 11.28 GiB | 40 % | 63 GB | **22.8** |
+| Q4_K_S | 21.78 GiB | 2.11 GB | 7.0 GB | 14.77 GiB | 40 % | 82 GB | **26.4** |
 
 ## Om `pin_experts`
 

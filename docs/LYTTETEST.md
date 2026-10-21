@@ -54,6 +54,25 @@ som hørselen gjorde hos Q3_K_S:
 referansemodellene.** Hypotesen «halve lagene på Q2_K er greit, fordi
 routeren er urørt» er **avkreftet**.
 
+### Lagkartet var feil
+
+Vi delte 50/50 uten å beskytte lagene drama3-small peker ut. Verifisert
+innhold i miksen:
+
+```
+lag  0-19: Q4_K     lag 20-39: Q2_K
+```
+
+Lag 0, 1 og 2 havnet i Q4_K-gruppen ved tilfeldighet, men **lag 36 ligger
+i Q2_K-gruppen** — ett av de fire lagene drama3-small beskriver som
+langt mer sensitive enn resten:
+
+> *Pruning layer 0, 1, 2 or 36 costs far more than any other layer, so
+> those four keep all 256.*
+
+**Vi beskyttet dem ikke.** Vi bygger nå en mikst der lag 0, 1, 2 og 36
+holdes på Q4_K.
+
 ### To forvekslinger vi må skille fra hverandre
 
 1. **Dobbelt kvantisering.** Miksen ble bygd som
