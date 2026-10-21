@@ -1,0 +1,10 @@
+audio.cpp is optimized for CUDA. The metal server backend is intended for portability and testing, but performance and model coverage may be lower than CUDA.
+[TRACE ts=20261021-222835] runtime.model.contract_spec /Users/sondre/fish_drama3_35b_exert_offloading/spec_override/fish_drama3.json
+[TRACE ts=20261021-222835] runtime.model.contract_spec /Users/sondre/fish_drama3_35b_exert_offloading/spec_override/fish_drama3.json
+[TRACE ts=20261021-222835] runtime.model.contract_spec /Users/sondre/fish_drama3_35b_exert_offloading/spec_override/fish_drama3.json
+[TRACE ts=20261021-222835] runtime.model.contract_spec /Users/sondre/fish_drama3_35b_exert_offloading/spec_override/fish_drama3.json
+audiocpp_server listening on http://127.0.0.1:8080
+[SERVER_HTTP_DEBUG] http.headers method=GET path=/health content_length=<none> transfer_encoding=<none> incremental=false prefetched_body_bytes=0
+[SERVER_HTTP_DEBUG] http.body_ready path=/health body_bytes=0
+[SERVER_HTTP_DEBUG] http.headers method=POST path=/v1/audio/speech content_length=98 transfer_encoding=<none> incremental=false prefetched_body_bytes=98
+[SERVER_HTTP_DEBUG] http.body_ready path=/v1/audio/speech body_bytes=98

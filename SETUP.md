@@ -130,6 +130,70 @@ Se `--installer` for den fullstendige kommandoen.
 
 ---
 
+## Serveren — anbefalt måte å kjøre
+
+```bash
+python3 scripts/server.py start              # start
+python3 scripts/server.py status             # status
+python3 scripts/server.py snak "Hei hei"     # lag lyd
+python3 scripts/server.py frigi              # frigjør RAM
+python3 scripts/server.py stop               # stopp
+```
+
+**Hvorfor server og ikke CLI:**
+
+| | CLI | Server |
+|---|---|---|
+| Modelllast | hver forespørsel | **én gang** |
+| Referansens codec-koding | hver forespørsel | **én gang** |
+| Referansens ryggrad-prefill | hver forespørsel | **én gang** (prefix gjenbrukes) |
+| RAM | frigjøres når prosessen går ut | **kan frigjøres mens serveren står** |
+
+### RAM-livssyklus
+
+Det er her serveren tjener mest, hvis du kjører en LLM ved siden av lydgenereringen:
+
+```bash
+python3 scripts/server.py frigi    # modellen slippes fra RAM, serveren står
+```
+
+`frigi` kaller `POST /v1/tasks/unload_all_models`. Neste forespørsel laster
+modellen på nytt, så kjør `frigi` når du er ferdig med lydarbeidet — eller
+mellom to bolker.
+
+To innstillinger i `scripts/innstillinger.json` styrer dette:
+
+| Nøkkel | Standard | Betydning |
+|---|---|---|
+| `idle_unload_ms` | 600 000 | modellen frigjøres automatisk etter 10 min i ro |
+| `min_free_memory_mb` | 4 096 | serveren **later ikke** modellen hvis mindre enn 4 GB er ledig |
+
+`min_free_memory_mb` er grunnen til at du får `503 Service Unavailable`
+når LLM-en har spist minnet: serveren sier «nei, ikke nå» i stedet for å
+bygge opp swap. Vent til minnet frigjøres, eller stopp LLM-en mens du
+genererer.
+
+### Cache-størrelse når annet kjører
+
+Målt på M1 Pro 16 GB, Q4_K_S, 16 parallelle lesninger:
+
+| `expert_cache_size` | RTF | peak RSS | lest fra disk |
+|---|---|---|---|
+| 32 | 18,7 | 8 415 MB | 76,3 GB |
+| 64 | 17,1 | 9 512 MB | 53,7 GB |
+| 80 | **15,3** | 10 288 MB | 47,4 GB |
+| 88 | 15,4 | 10 746 MB | 44,6 GB |
+| 96 | — | — | **opplastingseksplosion, se `docs/EXPERTCACHE.md`** |
+
+**Med en LLM samtidig: bruk 32.** Det sparer 1 097 MB hard RAM mot 64, mot
+9,7 % hastighet. Serveren er laget for akkurat denne situasjonen: kjør
+`frigi` når du er ferdig.
+
+**Uten annet som kjører: bruk 80.** Kanten for opplastingsproblemet ligger
+mellom 88 og 96 — over 96 går opplastingen fra 11 s til 235 s.
+
+---
+
 ## Bytter du Mac?
 
 ```bash

@@ -1,0 +1,33 @@
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "backend": "metal",
+  "threads": 8,
+  "lazy_load": true,
+  "max_loaded_models": 1,
+  "idle_unload_ms": 600000,
+  "min_free_memory_mb": 4096,
+  "model_spec_override": "/Users/sondre/fish_drama3_35b_exert_offloading/spec_override",
+  "default_session_options": {
+    "fish_drama3.disk_experts": "true",
+    "fish_drama3.expert_cache_size": "32",
+    "fish_drama3.expert_read_threads": "16",
+    "fish_drama3.cpu_expert_layers": "0",
+    "fish_drama3.context_length": "2048",
+    "fish_drama3.codec_backend": "cpu",
+    "fish_drama3.codec_encoder_chunk_samples": "65536"
+  },
+  "models": [
+    {
+      "id": "drama3",
+      "family": "fish_drama3",
+      "path": "/Users/sondre/fish_drama3_35b_exert_offloading/models/drama-3-backbone-4bit-experts-Q4_K_S.gguf",
+      "task": "clon",
+      "mode": "offline",
+      "default_voice_preset": {
+        "voice_ref": "/Users/sondre/fish-drama3-norsk/audio/referanse_stemme.wav",
+        "reference_text": "I dag skal vi lage et ukebladportrett med collage! Men hva er egentlig et ukebladportrett? Et portrett er et bilde av et menneske."
+      }
+    }
+  ]
+}

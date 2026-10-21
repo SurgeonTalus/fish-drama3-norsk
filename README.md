@@ -18,10 +18,23 @@ Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 | | |
 |---|---|
 | **Modell** | **Q4_K_S** (21,78 GiB) — best kvalitet, 9,5/10 i høring |
-| **Cache** | `expert_cache_size=64` (eksperter per lag i GPU-RAM) |
+| **Kjøring** | **serveren** — modellen lastes én gang, referansen bufres |
+| **Cache** | `expert_cache_size=32` (64–80 når du har RAM til det) |
 | **Parallelle lesninger** | `expert_read_threads=16` |
-| **Hastighet** | **RTF 17,1** mot 25,5 uten parallellisering |
-| **Minne** | 9,5 GB peak — får plass på 16 GB |
+| **Hastighet** | **RTF 18,7** med cache 32, **17,1** med 64, **15,3** med 80 |
+| **Minne** | 8,4 GB peak med cache 32 — får plass på 16 GB |
+
+```bash
+python3 scripts/server.py start          # start serveren
+python3 scripts/server.py snak "Hei hei"  # lag lyd
+python3 scripts/server.py frigi           # frigjør RAM når du er ferdig
+```
+
+**Servern er den anbefalte måten å kjøre.** Modellen lastes én gang i stedet
+for ved hver forespørsel, referansens codec-koding og ryggrad-prefill gjøres
+bare én gang, og `frigi` gir RAM-en tilbake når du vil — nyttig når du kjører
+en LLM ved siden av. Detaljene i [SETUP.md](SETUP.md#serveren--anbefalt-måte-å-kjøre).
+
 
 ### Kvalitetsverifikasjon
 
@@ -208,7 +221,19 @@ Du skal se `backends: cpu,metal`.
 
 ## Lage tale
 
-### Med en ferdig referansestemme
+### Med serveren (anbefalt)
+
+```bash
+python3 scripts/server.py start              # én gang
+python3 scripts/server.py snak "Mal et A4-ark i grønne og gule nyanser." \
+  -o output/tale.wav
+open output/tale.wav
+```
+
+Serveren bruker referansestemmen og transkriptet fra `audio/` automatisk.
+`frigi` slipper modellen fra RAM når du er ferdig.
+
+### Med CLI-en (uten server)
 
 Referansen er et kort opptak (10–30 sekunder) av stemmen din, med et
 transskript. Filen `audio/referanse_stemme.wav` i dette repoet er et eksempel.
@@ -225,7 +250,8 @@ transskript. Filen `audio/referanse_stemme.wav` i dette repoet er et eksempel.
   --text "Mal et A4-ark i grønne og gule nyanser. Mal en stor sirkel på 25,5 cm og fyll hele sirkelen med farge." \
   --max-tokens 400 --seed 42 --threads 10 \
   --session-option fish_drama3.disk_experts=true \
-  --session-option fish_drama3.expert_cache_size=8 \
+  --session-option fish_drama3.expert_cache_size=32 \
+  --session-option fish_drama3.expert_read_threads=16 \
   --session-option fish_drama3.cpu_expert_layers=0 \
   --session-option fish_drama3.context_length=2048 \
   --session-option fish_drama3.codec_backend=cpu \
@@ -244,7 +270,7 @@ open tale.wav
 | Flagg | Hvorfor |
 |---|---|
 | `fish_drama3.disk_experts=true` | **Nødvendig på 16 GB.** Ekspertene ligger på disk og hentes inn mens de brukes. |
-| `fish_drama3.expert_cache_size=8` | Hvor mange eksperter som holdes i RAM om gangen. 8 = minst RAM. 32 = færre disklesninger. |
+| `fish_drama3.expert_cache_size=32` | Hvor mange eksperter som holdes i RAM om gangen. 32 = 8,4 GB peak. 64 = 9,5 GB. 80 = 10,3 GB. |
 | `fish_drama3.cpu_expert_layers=0` | Ekspertene kjøres fortsatt på GPU-en. Bare vektene strømmes. |
 | `fish_drama3.codec_backend=cpu` | Flytter lydkoderen (747 MB) ut av GPU-minnet. Uten dette kan prosessen bli avsluttet. |
 | `fish_drama3.codec_encoder_chunk_samples=65536` | Deler referanse-encodingen i biter, slik at toppminnet blir lavere. |
