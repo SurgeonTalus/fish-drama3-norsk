@@ -58,7 +58,8 @@ Alt nedenfor er målt på en **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1
 6. [Pruning](#pruning)
 7. [Ordbok](#ordbok)
 8. [Feilsøking](#feilsøking)
-9. [Kilder og prosjekter](#kilder-og-prosjekter)
+9. [Veien videre](#veien-videre)
+10. [Kilder og prosjekter](#kilder-og-prosjekter)
 
 ---
 
@@ -347,6 +348,32 @@ brew install ffmpeg
 
 **«Feil ved lasting: tensor shape mismatch»**
 Modellfilen er kuttet feil. Kjør `scripts/prune_gguf.py` på nytt.
+
+---
+
+## Veien videre
+
+Fra dette prosjektet til en ferdig norsk modell. Tre uavhengige spor:
+
+| Spor | Mål | Varer | Koster |
+|---|---|---|---|
+| **A** | Q4/Q2-blanding per lag — passer bedre på 16 GB | 1 time | $0 |
+| **B** | Destillasjon for å redde en pruned modell | 1–2 døgn | $10–30 (leid GPU) |
+| **C** | LoRA-finetuning av CosyVoice3 for norsk | 2–5 døgn | $0 (på din Mac) |
+
+**Spor A** er mest aktuelt akkurat nå: Q2_K er raskere, men oppfører seg mer
+«amerikansk». Ved å holde Q4_K på lagene som bærer norsk og bruke Q2_K på
+resten får vi en mindre modell uten å ødelegge routeren — som var problemet
+med pruning.
+
+**Spor C** krever ingen GPU og kan kjøre parallelt. Norsk data finnes i
+Språkbanksen under CC0: NST Norwegian Speech Synthesis (5 363 uttrykk),
+NB Tale (12 t, 380 talere, 12 dialekter), NST ASR (980 talere),
+parlamentskorpuset (59 t). For din egen stemme er 20–30 minutter med opptak
+på 24 kHz mono nok til en LoRA.
+
+Full detalj, kommandoer og kostnadsestimater:
+[`docs/VEIEN_VIDERE.md`](docs/VEIEN_VIDERE.md).
 
 ---
 
