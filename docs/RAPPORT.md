@@ -141,14 +141,21 @@ lagde et lytteopplegg: aksent må vurderes av et menneske.
 RTF = real-time factor = wall-sekunder ÷ lydsekunder. **Lavere er bedre.**
 RTF 1,0 betyr «i sanntid».
 
-| Modell | RTF | Disk lest for 33 s | Minne |
-|---|---|---|---|
-| Chatterbox v3 | **5,8** | 0 | ~1,5 GB |
-| CosyVoice3 + LoRA | **10,8** | 0 | ~7 GB |
-| Drama 3 IQ3_XXS | 11,2 | 0 | 10,3 GB |
-| Drama 3 Q2_K | 12,7 | 0 | 7,7 GB |
-| Drama 3 Q4_K_S | 24,0 | 351 GB | 7,7 GB |
-| Drama 3 Q4_K_S, pruned til 100 eksperter | **3,81** | 192 GB | 7,7 GB |
+| Modell | RTF | Disk lest | Minne | Størrelse |
+|---|---|---|---|---|
+| Chatterbox v3 | **5,8** | 0 | ~1,5 GB | ~1,5 GB |
+| CosyVoice3 + LoRA | **10,8** | 0 | ~7 GB | 0,5 B |
+| Drama 3 IQ3_XXS | 11,2 | 0 | 10,3 GB | 9,7 GiB |
+| **Drama 3 Q3_K_S, cache 64, 16 tråder** | **15,9** | 44,5 GB | 10,0 GB | 18,9 GiB |
+| Drama 3 Q4_K_S, cache 64, 16 tråder | 17,1 | 53,7 GB | 9,5 GB | 21,8 GiB |
+| Drama 3 Q2_K, cache 32, 16 tråder | 22,2 | 43,0 GB | — | 15,9 GiB |
+| Drama 3 Q4_K_S, cache 8, 1 tråd | 25,5 | 57,3 GB | 8,8 GB | 21,8 GiB |
+| Drama 3 Q4_K_S, pruned til 100 eksperter | **3,81** | 192 GB | 7,7 GB | 12,5 GiB |
+
+**De to øverste radene (Chatterbox, CosyVoice3) kjører uten
+ekspert-offloading.** Drama 3 kan ikke det på 16 GB — modellen veier 22 GB.
+Pruning-tallet er målt, men modellen er ødelagt uten trening
+(se [`PRUNING.md`](PRUNING.md)).
 
 ### Ekspert-cachen: den viktigste innstillingen
 
@@ -159,15 +166,40 @@ hvert eneste token som bruker en annen kombinasjon til en disklesning.
 Vi kjørte samme modell, samme tekst og samme seed, og varierte bare
 cache-størrelsen:
 
-| `expert_cache_size` | Treffrate | Ekspertlast | Bytes lest | **RTF** |
-|---|---|---|---|---|
-| 8 | 20,0 % | 63 048 | 111,6 GB | 44,2 |
-| 16 | 30,0 % | 55 684 | 98,5 GB | **27,4** |
-| 32 | 40,0 % | 46 403 | 82,1 GB | **26,4** |
-| 64 | 50,0 % | 34 873 | 61,7 GB | **21,3** |
+**Alt nedenfor er målt på Q3_K_S, samme tekst, samme seed.**
 
-**RTF 44,2 → 21,3 (−52 %) og disklesningen 111,6 → 61,7 GB (−45 %) — uten å
-røre modellen.** Ingen ny kvantisering, ingen ny kode. Bare en innstilling.
+| `expert_cache_size` | Tråder | Treffrate | Bytes lest | Disk | **RTF** |
+|---|---|---|---|---|---|
+| 32 | 1 | 42,3 % | 57,3 GB | 175,4 s | 25,5 |
+| 32 | 4 | 42,3 % | 57,3 GB | 122,7 s | 19,4 |
+| 32 | 8 | 42,3 % | 57,3 GB | 102,9 s | 17,3 |
+| 32 | 16 | 42,3 % | 57,3 GB | 98,3 s | 16,8 |
+| 32 | 32 | 42,3 % | 57,3 GB | 103,2 s | 17,6 |
+| 48 | 16 | 49,5 % | 50,2 GB | 100,6 s | 16,9 |
+| **64** | **16** | **55,3 %** | **44,5 GB** | **90,3 s** | **15,9** |
+| 64 | 8 | 55,3 % | 44,5 GB | 95,3 s | 17,3 |
+| 96 | 1 | 63,8 % | 36,0 GB | 109,6 s | 19,9 |
+| 96 | 8 | 63,8 % | 36,0 GB | 74,1 s | 19,7 |
+| 96 | 16 | 63,8 % | 36,0 GB | 77,0 s | 60,0 |
+
+**RTF 25,5 → 15,9 (−38 %) og disklesningen 57,3 → 44,5 GB — uten å røre
+modellen.** Ingen ny kvantisering, ingen ny modell. Bare to innstillinger.
+
+**Cache 96 med 16 tråder går badly.** Disklesningen blir raskere (77 s),
+men opplastingen til GPU-en eksploderer til 234,7 s. Ved store caches er
+det **overføringen**, ikke disken, som er flaskehals.
+
+### Parallelle ekspertlesninger
+
+Vi leste ekspertene sekvensielt og fikk **327 MB/s** av en disk som klarer
+2–3 GB/s. Med 16 tråder parallelt fikk vi 493 MB/s. Endringen er i
+`disk_expert_weight_store.cpp`, og utdata blir **bit-identisk** fordi
+endringen bare flytter hvor bytene leses fra.
+
+Se [`PARALLELLESNING.md`](PARALLELLESNING.md). Foreslaget er lagt opp i
+[audio.cpp#1033](https://github.com/0xShug0/audio.cpp/issues/1033), og
+målingene er delt i
+[llama.cpp#20757](https://github.com/ggml-org/llama.cpp/issues/20757).
 
 ### RAM-kostnaden
 
