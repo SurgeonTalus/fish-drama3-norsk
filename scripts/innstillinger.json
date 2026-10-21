@@ -1,7 +1,6 @@
 {
   "versjon": "2026-10-21",
   "kommentar": "Alle tall er malt på M1 Pro 16 GB, 10 kjerner, macOS 27.0.1, audio.cpp 0.9.2-drama3-base-small (Metal). Oppdater denne filen naar nye resultater kommer; oppsett.py leser den og tar seg av resten.",
-
   "maskin": {
     "ram_gb": 16,
     "kjerner": 10,
@@ -9,7 +8,6 @@
     "macos": "27.0.1",
     "runtime": "audio.cpp 0.9.2-drama3-base-small (Metal)"
   },
-
   "konstanter": {
     "per_ekspert_mb_per_lag": 1.29,
     "lag": 40,
@@ -19,7 +17,6 @@
     "peak_per_cache_mb": 25.8,
     "kommentar": "peak_rss_mb ~ 7900 + 25.8 * expert_cache_size, malt paa Q3_K_S. Annet for Q4_K_S har mindre fast del (4,9 GiB), saa der kan cache-storrelsen vaere noe storre."
   },
-
   "modeller": [
     {
       "navn": "Q3_K_S",
@@ -72,7 +69,6 @@
       "min_ram_gb": 12
     }
   ],
-
   "anbefalinger": {
     "8": {
       "modell": "Q4_K_S",
@@ -90,45 +86,124 @@
     },
     "16": {
       "modell": "Q3_K_S",
-      "expert_cache_size": 96,
+      "expert_cache_size": 64,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "16 GB malt: cache 96 med 16 parallelle lesninger ga RTF 16,8. Cache 128 ga swap-hell, saa 96 er taket."
+      "begrunnelse": "16 GB malt: cache 64 med 16 parallelle lesninger ga RTF 15,9. Cache 96 ga RTF 19,7 (opplastingen blir flaskehals) og cache 128 ga swap-hell. 64 er sweet spot."
     },
     "24": {
       "modell": "Q3_K_S",
-      "expert_cache_size": 160,
+      "expert_cache_size": 128,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "24 GB: samme modell, storre cache. Ekstrapolert fra 16 GB, ikke malt ennå."
+      "begrunnelse": "24 GB: cache 128. Ekstrapolert fra 16 GB, ikke malt ennå."
     },
     "32": {
       "modell": "Q3_K_S",
-      "expert_cache_size": 224,
+      "expert_cache_size": 192,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "32 GB: nesten hele ekspertbanken i RAM. Ekstrapolert, ikke malt ennå."
+      "begrunnelse": "32 GB: cache 192. Ekstrapolert, ikke malt ennå."
     },
     "64": {
       "modell": "Q3_K_S",
       "expert_cache_size": 256,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "64 GB: hele ekspertbanken i RAM, ingen disklesninger i det hele tatt."
+      "begrunnelse": "64 GB: hele ekspertbanken i RAM. Ekstrapolert, ikke malt ennå."
     }
   },
-
   "resultater": [
-    {"kjøring": "cache 32, 1 tråd", "rtf": 25.5, "treff": 0.423, "disk_ms": 175400, "wall_ms": 235900, "merknad": "utgangspunkt"},
-    {"kjøring": "cache 32, 4 tråder", "rtf": 19.4, "treff": 0.423, "disk_ms": 122700, "wall_ms": 179200},
-    {"kjøring": "cache 32, 8 tråder", "rtf": 17.3, "treff": 0.423, "disk_ms": 102900, "wall_ms": 159500},
-    {"kjøring": "cache 32, 16 tråder", "rtf": 16.8, "treff": 0.423, "disk_ms": 98300, "wall_ms": 154900, "merknad": "beste målte RTF"},
-    {"kjøring": "cache 96, 1 tråd", "rtf": 19.9, "treff": 0.638, "disk_ms": 109600, "wall_ms": 183700},
-    {"kjøring": "cache 96, 8 tråder", "rtf": 19.7, "treff": 0.638, "disk_ms": 74100, "wall_ms": 182200, "merknad": "disk raskere, men wall uendret - flaskehalsen flyttet"},
-    {"kjøring": "cache 32, 8 tråder, pinning topp-32", "rtf": 23.8, "treff": 0.385, "disk_ms": 159400, "wall_ms": 219500, "merknad": "7 % raskere, bit-identisk utdata"},
-    {"kjøring": "cache 96, 8 tråder, pinning topp-32", "rtf": null, "merknad": "ugyldig - kjørte parallelt med annen måling"}
+    {
+      "kjøring": "cache 32, 1 tråd",
+      "rtf": 25.5,
+      "treff": 0.423,
+      "lest_gb": 57.3,
+      "disk_ms": 175400,
+      "last_ms": 14600,
+      "wall_ms": 235900,
+      "merknad": "utgangspunkt"
+    },
+    {
+      "kjøring": "cache 32, 4 tråder",
+      "rtf": 19.4,
+      "treff": 0.423,
+      "disk_ms": 122700,
+      "wall_ms": 179200
+    },
+    {
+      "kjøring": "cache 32, 8 tråder",
+      "rtf": 17.3,
+      "treff": 0.423,
+      "disk_ms": 102900,
+      "wall_ms": 159500
+    },
+    {
+      "kjøring": "cache 32, 16 tråder",
+      "rtf": 16.8,
+      "treff": 0.423,
+      "disk_ms": 98300,
+      "wall_ms": 154900
+    },
+    {
+      "kjøring": "cache 32, 32 tråder",
+      "rtf": 17.6,
+      "treff": 0.423,
+      "disk_ms": 103200,
+      "wall_ms": 162500,
+      "merknad": "32 tråder er for mange"
+    },
+    {
+      "kjøring": "cache 64, 8 tråder",
+      "rtf": 17.3,
+      "treff": 0.553,
+      "disk_ms": 95300,
+      "wall_ms": 159800
+    },
+    {
+      "kjøring": "cache 64, 16 tråder",
+      "rtf": 15.9,
+      "treff": 0.553,
+      "lest_gb": 44.5,
+      "disk_ms": 90300,
+      "last_ms": 11700,
+      "wall_ms": 146700,
+      "merknad": "BESTE MALTE RTF"
+    },
+    {
+      "kjøring": "cache 96, 1 tråd",
+      "rtf": 19.9,
+      "treff": 0.638,
+      "disk_ms": 109600,
+      "wall_ms": 183700
+    },
+    {
+      "kjøring": "cache 96, 8 tråder",
+      "rtf": 19.7,
+      "treff": 0.638,
+      "disk_ms": 74100,
+      "last_ms": 41600,
+      "wall_ms": 182200,
+      "merknad": "opplastingen blir flaskehals"
+    },
+    {
+      "kjøring": "cache 96, 16 tråder",
+      "rtf": 60.0,
+      "treff": 0.638,
+      "disk_ms": 77000,
+      "last_ms": 234700,
+      "wall_ms": 554500,
+      "merknad": "opplastingen eksploderer - for mange traader"
+    },
+    {
+      "kjøring": "cache 32, 8 tråder, pinning topp-32",
+      "rtf": 23.8,
+      "treff": 0.385,
+      "disk_ms": 159400,
+      "wall_ms": 219500,
+      "merknad": "7 % raskere, bit-identisk utdata"
+    }
   ],
-
   "installasjon": {
     "runtime_repo": "https://github.com/0xShug0/audio.cpp",
     "runtime_krev": "audio.cpp 0.9.2-drama3-base-small, bygget med Metal",
