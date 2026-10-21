@@ -74,3 +74,61 @@ presser det: vi fikk 8,6 GB swap og generasjonen stod nesten helt stille.
 ## Målt resultat
 
 Se `docs/LYTTETEST.md` for høring, og `docs/RAPPORT.md` for tabellene.
+
+---
+
+## Resultatet: uten trening ødelegger lag-droputing modellen
+
+**Testet:** 24 lag, grupper {0, 1, 3, 5, 7, 9} — 13,21 GiB, maks hopp 4 lag,
+alle 10 full-attention-lag beholdt, lag 0/1/2 og 36 beholdt.
+
+| | |
+|---|---|
+| RTF | **18,4** (mot 23,0 for 40 lag) |
+| Treffrate | **69,0 %** (mot 42,0 %) |
+| Lest fra SSD | **23,9 GB** (mot 57,3 GB) |
+| **WER (norsk ASR)** | **96,9 %** |
+
+Transkripsjonen:
+
+> *trygg år omgående ja de stilt på vedde forskeren kan altså det tvillings*
+
+**Modellen snakker norsk-formet babbel.** Ordene har riktig form, men
+ingen betydning. De 16 kuttede lagene bærer tyngden av språkforståelsen.
+
+**Dette er forventet.** Lag-droputing i litteraturen krever en lett
+finetuning — typisk 1–5 % av originalens treningsdata. Vi har ingen
+finetuning gjort, så resultatet er et resultat, ikke et nederlag.
+
+### Hva det betyr for veien videre
+
+| Tilnærming | Størrelse | Trenger trening? | Kost |
+|---|---|---|---|
+| Lag-droputing uten trening | 13,2 GiB | — | ødelagt |
+| **Lag-droputing + lett LoRA-finetune** | 13,2 GiB | Ja, **men lite** | ~$2–5 på H100 |
+| Ekspert-pruning + refit + destillasjon | 4,5 GiB | Ja, mye | ~$45–56 |
+| Q3_K_S uendret | 18,9 GiB | Nei | $0 |
+| Q3_K_S @ cache 96 | 18,9 GiB | Nei | $0 |
+
+**Lag-droputing + lett finetuning ser ut til å være den billigste veien til en
+liten modell.** Vi trenger kanskje 5–20 timer norsk tale, ikke de 282
+timene drama3-small brukte, fordi vi ikke rører ekspertene — bare dybden.
+Og LoRA på en 13 GiB modell passer lett på en H100.
+
+### En begrensning vi må huske
+
+Runtime-en krever at lagtypen følger *posisjonen*:
+
+```cpp
+const auto expected = (layer + 1) % 4 == 0 ? "full_attention" : "linear_attention";
+```
+
+Så lag kan bare kuttes i hele grupper på fire. Innenfor det er de beste
+fordelingene:
+
+| lag | grupper | maks hopp | beholder 0,1,2 og 36 | størrelse |
+|---|---|---|---|---|
+| 24 | {0,1,3,5,7,9} | 4 | ja | 13,21 GiB |
+| 20 | {0,2,4,6,9} | 8 | ja | 11,78 GiB |
+| 20 | {0,2,4,6,8} | 4 | mister 36 | 11,78 GiB |
+| 28 | {0,1,2,4,6,8,9} | 4 | ja | 14,5 GiB |
