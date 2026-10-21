@@ -64,16 +64,37 @@ Slik ble målingene gjort, slik at resultatene kan reproduseres.
 
 ### Ordfeilrate (WER)
 
-Whisper `small`. Teksten normaliseres for skilletegn og store/små bokstaver
-før Levenshtein-avstand på ordnivå beregnes og deles på referanselengde.
+**Norsk ASR:** `NbAiLab/nb-wav2vec2-1b-bokmaal` (Nasjonalbibliotekets AI-lab).
+Modellen er spesialisert på norsk bokmål og har **6,33 % WER** på norsk
+referansemateriale (NoDaLiDa 2023). Lyden resamples til 16 kHz mono, og
+teksten normaliseres for skilletegn og store/små bokstaver før
+Levenshtein-avstand på ordnivå beregnes og deles på referanselengde.
 
-Skript: `scripts/maal_wer.py`.
+Skript: `scripts/maal_norsk.py` (én fil), `scripts/maal_sett.py` (hele settet).
+
+> **Hvorfor ikke Whisper small?** Vi begynte med Whisper `small` med
+> `language="no"` tvunget. Det viste seg å ha en mye høyere støyflyt enn
+> modellene: den skrev norske ord i engelsk ortografi og bommet tall.
+> Alle Drama 3-modellene fikk omtrent samme WER uansett kvalitet, og den
+> *dårligere* referansen ga et *bedre* tall (18,2 % mot 36,4 % på samme
+> modell). Et mål uten diskrimineringskraft kan ikke brukes til å skille
+> modeller. Whisper `small` beholdes bare til auto-språkdeteksjon.
 
 ### Auto-språk
 
-Whisper uten at språket er tvunget. Modellen vurderer selv hvilket språk
-lyden er. Dette avdekker aksentdrift: CosyVoice3s engelsk ble klassifisert
-som svensk, Chatterbox sitt engelsk som norsk.
+Whisper `small` uten at språket er tvunget. Modellen vurderer selv hvilket
+språk lyden er. Dette avdekker aksentdrift: CosyVoice3s engelsk ble
+klassifisert som svensk, Chatterbox sitt engelsk som norsk.
+
+### Aksent — menneskelig vurdering
+
+Aksent kan ikke måles med ett tall. WER forteller hvor mye av innholdet som
+er forstått, ikke om stemmen *høres* norsk ut. Den siste dommen gir
+mennesket: lyttepakken i `scripts/lyttepakke.sh` genererer samme norske
+setning fra flere modeller, med spørsmål om språk, forståelighet og
+naturlighet.
+
+Se `docs/RETTING.md` for en målefeil vi fant og rettet.
 
 ### Grunnfrekvens (F0)
 
@@ -124,9 +145,13 @@ python3 scripts/maal_wer.py output/tale.wav
 ## Viktige forbehold
 
 - **Målingene er fra én maskin.** RTF varierer med CPU, disk og bakgrunnslast.
-- **Whisper `small` er et aproksimasjonsverktøy.** Det fanger det store
-  bildet, men ikke subtile uttalefeil.
+- **ASR er et aproksimasjonsverktøy.** En WER på 30 % betyr ikke «30 % av
+  ordene er feil» — det betyr at måleverktøyet og modellen ikke er enige.
+  Transkripsjonen leses derfor alltid med, ikke bare tallet.
 - **Referansen er norsk.** Derfor ser vi aksentdrift hos modellene som er
   språkbundet til referansen.
+- **Referanseteksten må matche referanselyden.** Vi brukte en lengre
+  referansetekst enn det 8-sekundersklippen faktisk inneholdt. Alle
+  Drama 3-målingene før dette ble tatt med den feilen.
 - **Én kjøring per konfigurasjon.** For Drama 3 full ga to kjøringer
   18,2 % og 36,4 % WER med identisk oppsett — tallet varierer.
