@@ -17,11 +17,11 @@ Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 
 | | |
 |---|---|
-| **Modell** | **Q3_K_S** (18,93 GiB) — nesten Q4_K_S-kvalitet, 2,85 GiB mindre |
+| **Modell** | **Q4_K_S** (21,78 GiB) — best kvalitet, 9,5/10 i høring |
 | **Cache** | `expert_cache_size=64` (eksperter per lag i GPU-RAM) |
 | **Parallelle lesninger** | `expert_read_threads=16` |
-| **Hastighet** | **RTF 15,9** mot 25,5 uten parallellisering |
-| **Kvalitet** | 9/10 i høring mot 9,5/10 for Q4_K_S |
+| **Hastighet** | **RTF 17,1** mot 25,5 uten parallellisering |
+| **Minne** | 9,5 GB peak — får plass på 16 GB |
 
 **Sett opp alt med ett skript:**
 
@@ -83,8 +83,8 @@ destillasjon (som krever en 96 GB GPU). Se [`docs/PRUNING.md`](docs/PRUNING.md).
 
 | Modell | Fil | Kvalitet | RTF | Merknad |
 |---|---|---|---|---|
-| **Q3_K_S** | 18,93 GiB | **9/10** | 16,8 | **Anbefalt** |
-| Q4_K_S | 21,78 GiB | **9,5/10** | 21,3 | Best kvalitet |
+| **Q4_K_S** | 21,78 GiB | **9,5/10** | **17,1** | **Anbefalt** |
+| Q3_K_S | 18,93 GiB | 9/10 | 15,9 | 2,85 GiB mindre, litt raskere |
 | Q2_K | 15,88 GiB | 7/10 | 14,4 | /r/ går tapt |
 | F32-routers | 22,97 GiB | 9,4/10 | — | Ingen bedre enn Q4_K_S |
 | drama3-small | 9,74 GiB | 59 % WER | 11,2 | Destillert for japansk/engelsk |

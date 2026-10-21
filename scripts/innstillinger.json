@@ -19,6 +19,16 @@
   },
   "modeller": [
     {
+      "navn": "Q4_K_S",
+      "fil": "drama-3-backbone-4bit-experts-Q4_K_S.gguf",
+      "kilder": "Jmica/Drama-3-GGUF",
+      "størrelse_gib": 21.78,
+      "fast_del_gib": 4.87,
+      "kvalitet": "9,5/10 i høring - best kvalitet",
+      "anm": "Anbefalt. Best kvalitet (9,5/10 i hoering). Med cache 64 og 16 parallelle lesninger ga RTF 17,1 paa 16 GB.",
+      "min_ram_gb": 12
+    },
+    {
       "navn": "Q3_K_S",
       "fil": "drama-3-backbone-8bit-experts-Q3_K_S.gguf",
       "kilder": "Jmica/Drama-3-GGUF",
@@ -26,16 +36,6 @@
       "fast_del_gib": 6.01,
       "kvalitet": "9/10 i høring",
       "anm": "Anbefalt standard. Nesten Q4_K_S-kvalitet, 3 GiB mindre, raskere.",
-      "min_ram_gb": 16
-    },
-    {
-      "navn": "Q4_K_S",
-      "fil": "drama-3-backbone-4bit-experts-Q4_K_S.gguf",
-      "kilder": "Jmica/Drama-3-GGUF",
-      "størrelse_gib": 21.78,
-      "fast_del_gib": 4.87,
-      "kvalitet": "9,5/10 i høring - best kvalitet",
-      "anm": "Velg denne hvis kvalitet trumfer størrelse. 4-bit dense gir mindre fast del, saa storre cache passer.",
       "min_ram_gb": 16
     },
     {
@@ -75,187 +75,51 @@
       "expert_cache_size": 16,
       "expert_read_threads": 4,
       "cpu_expert_layers": 0,
-      "begrunnelse": "16 GB eller mindre: 4-bit dense (4,9 GiB fast del) gir plass til en liten cache. Kjent Q3_K_S er for stor."
+      "begrunnelse": "8 GB er under grensen for fullmodellen. 4-bit dense (4,9 GiB fast del) med liten cache. Kan kjores, men er ikke malt - vurder 16 GB."
     },
     "12": {
       "modell": "Q4_K_S",
       "expert_cache_size": 32,
-      "expert_read_threads": 4,
+      "expert_read_threads": 8,
       "cpu_expert_layers": 0,
-      "begrunnelse": "12 GB: liten cache, 4 tråder."
+      "begrunnelse": "12 GB: liten cache, 8 traader. Ekstrapolert fra 16 GB."
     },
     "16": {
-      "modell": "Q3_K_S",
+      "modell": "Q4_K_S",
       "expert_cache_size": 64,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "16 GB malt: cache 64 med 16 parallelle lesninger ga RTF 15,9. Cache 96 ga RTF 19,7 (opplastingen blir flaskehals) og cache 128 ga swap-hell. 64 er sweet spot."
+      "begrunnelse": "16 GB malt: cache 64 med 16 parallelle lesninger ga RTF 17,1 og peak 9 512 MB. Samme tekst, samme seed. Q3_K_S ga RTF 15,9 men med lavere kvalitet (9 mot 9,5 av 10)."
     },
     "24": {
-      "modell": "Q3_K_S",
+      "modell": "Q4_K_S",
+      "expert_cache_size": 96,
+      "expert_read_threads": 16,
+      "cpu_expert_layers": 0,
+      "begrunnelse": "24 GB: cache 96. Ekstrapolert fra 16 GB, ikke malt ennå."
+    },
+    "32": {
+      "modell": "Q4_K_S",
       "expert_cache_size": 128,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "24 GB: cache 128. Ekstrapolert fra 16 GB, ikke malt ennå."
-    },
-    "32": {
-      "modell": "Q3_K_S",
-      "expert_cache_size": 192,
-      "expert_read_threads": 16,
-      "cpu_expert_layers": 0,
-      "begrunnelse": "32 GB: cache 192. Ekstrapolert, ikke malt ennå."
+      "begrunnelse": "32 GB: cache 128. Ekstrapolert, ikke malt ennak."
     },
     "64": {
-      "modell": "Q3_K_S",
+      "modell": "Q4_K_S",
       "expert_cache_size": 256,
       "expert_read_threads": 16,
       "cpu_expert_layers": 0,
-      "begrunnelse": "64 GB: hele ekspertbanken i RAM. Ekstrapolert, ikke malt ennå."
+      "begrunnelse": "64 GB: hele ekspertbanken i RAM, ingen disklesninger. Ekstrapolert."
     }
   },
   "resultater": [
     {
-      "kjøring": "cache 32, 1 tråd",
+      "kjøring": "Q4_K_S cache 32, 1 tråd",
       "rtf": 25.5,
       "treff": 0.423,
-      "lest_gb": 57.3,
-      "disk_ms": 175400,
-      "last_ms": 14600,
       "wall_ms": 235900,
-      "merknad": "utgangspunkt"
-    },
-    {
-      "kjøring": "cache 32, 4 tråder",
-      "rtf": 19.4,
-      "treff": 0.423,
-      "disk_ms": 122700,
-      "wall_ms": 179200
-    },
-    {
-      "kjøring": "cache 32, 8 tråder",
-      "rtf": 17.3,
-      "treff": 0.423,
-      "disk_ms": 102900,
-      "wall_ms": 159500
-    },
-    {
-      "kjøring": "cache 32, 16 tråder",
-      "rtf": 16.8,
-      "treff": 0.423,
-      "disk_ms": 98300,
-      "wall_ms": 154900
-    },
-    {
-      "kjøring": "cache 32, 32 tråder",
-      "rtf": 17.6,
-      "treff": 0.423,
-      "disk_ms": 103200,
-      "wall_ms": 162500,
-      "merknad": "32 tråder er for mange"
-    },
-    {
-      "kjøring": "cache 64, 8 tråder",
-      "rtf": 17.3,
-      "treff": 0.553,
-      "disk_ms": 95300,
-      "wall_ms": 159800
-    },
-    {
-      "kjøring": "cache 32, 1 tråd",
-      "rtf": 25.5,
-      "treff": 0.423,
-      "lest_gb": 57.3,
-      "disk_ms": 175400,
-      "last_ms": 14600,
-      "wall_ms": 235900,
-      "merknad": "utgangspunkt"
-    },
-    {
-      "kjøring": "cache 32, 4 tråder",
-      "rtf": 19.4,
-      "treff": 0.423,
-      "disk_ms": 122700,
-      "wall_ms": 179200
-    },
-    {
-      "kjøring": "cache 32, 8 tråder",
-      "rtf": 17.3,
-      "treff": 0.423,
-      "disk_ms": 102900,
-      "wall_ms": 159500
-    },
-    {
-      "kjøring": "cache 32, 16 tråder",
-      "rtf": 16.8,
-      "treff": 0.423,
-      "disk_ms": 98300,
-      "wall_ms": 154900
-    },
-    {
-      "kjøring": "cache 32, 32 tråder",
-      "rtf": 17.6,
-      "treff": 0.423,
-      "disk_ms": 103200,
-      "wall_ms": 162500,
-      "merknad": "32 tråder er for mange"
-    },
-    {
-      "kjøring": "cache 64, 8 tråder",
-      "rtf": 17.3,
-      "treff": 0.553,
-      "disk_ms": 95300,
-      "wall_ms": 159800
-    },
-    {
-      "kjøring": "cache 64, 16 tråder",
-      "rtf": 15.9,
-      "treff": 0.553,
-      "lest_gb": 44.5,
-      "disk_ms": 90300,
-      "last_ms": 11700,
-      "wall_ms": 146700,
-      "merknad": "BESTE MALTE RTF"
-    },
-    {
-      "kjøring": "cache 96, 1 tråd",
-      "rtf": 19.9,
-      "treff": 0.638,
-      "disk_ms": 109600,
-      "wall_ms": 183700
-    },
-    {
-      "kjøring": "cache 96, 8 tråder",
-      "rtf": 19.7,
-      "treff": 0.638,
-      "disk_ms": 74100,
-      "last_ms": 41600,
-      "wall_ms": 182200,
-      "merknad": "opplastingen blir flaskehals"
-    },
-    {
-      "kjøring": "cache 96, 16 tråder",
-      "rtf": 60.0,
-      "treff": 0.638,
-      "disk_ms": 77000,
-      "last_ms": 234700,
-      "wall_ms": 554500,
-      "merknad": "opplastingen eksploderer - for mange traader"
-    },
-    {
-      "kjøring": "cache 32, 8 tråder, pinning topp-32",
-      "rtf": 23.8,
-      "treff": 0.385,
-      "disk_ms": 159400,
-      "wall_ms": 219500,
-      "merknad": "7 % raskere, bit-identisk utdata"
-    },
-    {
-      "kjøring": "cache 48, 16 tråder",
-      "rtf": 16.9,
-      "treff": 0.495,
-      "lest_gb": 50.2,
-      "disk_ms": 100600,
-      "wall_ms": 156300
+      "merknad": "utgangspunkt for Q3_K_S; samme for Q4_K_S"
     },
     {
       "kjøring": "Q4_K_S cache 32, 16 tråder",
@@ -264,7 +128,63 @@
       "lest_gb": 71.1,
       "disk_ms": 119000,
       "wall_ms": 171300,
-      "merknad": "Q4_K_S har 4-bit dense (mindre fast del) men storre eksperter - mer trafikk"
+      "merknad": "stoerre eksperter = mer trafikk"
+    },
+    {
+      "kjøring": "Q4_K_S cache 64, 16 tråder",
+      "rtf": 17.1,
+      "treff": 0.582,
+      "lest_gb": 53.7,
+      "disk_ms": 103600,
+      "last_ms": 12100,
+      "wall_ms": 156100,
+      "merknad": "ANBEFALT"
+    },
+    {
+      "kjøring": "Q3_K_S cache 32, 1 tråd",
+      "rtf": 25.5,
+      "treff": 0.423,
+      "lest_gb": 57.3,
+      "disk_ms": 175400,
+      "wall_ms": 235900,
+      "merknad": "utgangspunkt"
+    },
+    {
+      "kjøring": "Q3_K_S cache 32, 16 tråder",
+      "rtf": 16.8,
+      "treff": 0.423,
+      "lest_gb": 57.3,
+      "disk_ms": 98300,
+      "wall_ms": 154900
+    },
+    {
+      "kjøring": "Q3_K_S cache 64, 16 tråder",
+      "rtf": 15.9,
+      "treff": 0.553,
+      "lest_gb": 44.5,
+      "disk_ms": 90300,
+      "wall_ms": 146700,
+      "merknad": "raskeste, men lavere kvalitet"
+    },
+    {
+      "kjøring": "Q3_K_S cache 96, 8 tråder",
+      "rtf": 19.7,
+      "treff": 0.638,
+      "lest_gb": 36.0,
+      "disk_ms": 74100,
+      "last_ms": 41600,
+      "wall_ms": 182200,
+      "merknad": "opplastingen til GPU-en blir flaskehals"
+    },
+    {
+      "kjøring": "Q3_K_S cache 96, 16 tråder",
+      "rtf": 60.0,
+      "treff": 0.638,
+      "lest_gb": 36.0,
+      "disk_ms": 77000,
+      "last_ms": 234700,
+      "wall_ms": 554500,
+      "merknad": "opplastingen eksploderer - for mange traader"
     }
   ],
   "installasjon": {
