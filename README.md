@@ -1,0 +1,392 @@
+# Naturlig TTS på norsk med Fish Audio Drama 3
+
+**Lag norsk tale med din egen stemme — direkte på en MacBook Pro med 16 GB RAM.**
+
+Dette er en komplett guide til å kjøre [Fish Audio Drama 3](https://huggingface.co/fishaudio/drama-3)
+på en Mac med Apple Silicon, med målinger, lydklipp du kan høre, og forklaring
+av hvert ord du møter i loggene.
+
+Modellen er laget for NVIDIA-grafikkort og veier 22 GB. Macen din har 16 GB.
+Løsningen er **ekspert-offloading** — de store ekspert-vektene ligger på disk og
+hentes inn mens de brukes. Vi har også vist at man kan **prune bort unødvendige
+eksperter** direkte i modellfilen, slik at mindre av modellen trenger å ligge i
+RAM.
+
+---
+
+## Resultatet først
+
+Alt nedenfor er målt på en **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
+
+| Modell | Norsk | Engelsk | Hastighet (RTF) | Minne | Størrelse |
+|---|---|---|---|---|---|
+| **Drama 3 Q4_K_S (full)** | **18–36 % feil** | **6 % feil** | 28,8 | 6,9 GB | 21,8 GiB |
+| Drama 3 IQ3_XXS (liten) | 59 % feil | — | 11,2 | 10,3 GB | 9,7 GiB |
+| CosyVoice3 + norsk LoRA | 32 % feil | 12 % feil | **10,8** | ~7 GB | 0,5B |
+| Chatterbox v3 | 59 % feil | 15 % feil | **5,8** | ~1,5 GB | ~1,5 GB |
+
+**De viktigste funnene:**
+
+1. **Drama 3 snakker norsk.** 18–36 % ordfeilrate, og Whisper identifiserer
+   språket automatisk som norsk.
+
+2. **Den lille modellen snakker ikke norsk.** Den ble destillert på japansk og
+   engelsk, og norsk blir rot: «grønne og gule» blir «grunn og god», «sirkel på
+   25,5 cm» blir «cirken på 2 utplaner skjermvektet 5 cm».
+
+3. **CosyVoice3 og Chatterbox faller ut av engelsk.** Med en norsk
+   referansestemme ga CosyVoice3 engelsk med svensk uttale, og Chatterbox ga
+   engelsk med norsk uttale. Drama 3 holdt seg på engelsk. Se
+   [`docs/RAPPORT.md`](docs/RAPPORT.md).
+
+4. **Pruning virker teknisk, men ødelegger kvaliteten uten trening.** Vi kuttet
+   modellen fra 256 til 100 eksperter per lag direkte i GGUF-filen: 21,8 GiB →
+   12,5 GiB og **6,3x raskere**. Men uten router-refit og destillasjon
+   (som krever en 96 GB GPU) blir modellen ødelagt. Vi dokumenterer funnet
+   ærlig i [`docs/PRUNING.md`](docs/PRUNING.md).
+
+---
+
+## Innhold
+
+1. [Hva du trenger](#hva-du-trenger)
+2. [Installasjon](#installasjon)
+3. [Lage tale](#lage-tale)
+4. [Lydklipp](#lydklipp)
+5. [Sammenligning av modellene](#sammenligning-av-modellene)
+6. [Pruning](#pruning)
+7. [Ordbok](#ordbok)
+8. [Feilsøking](#feilsøking)
+9. [Kilder og prosjekter](#kilder-og-prosjekter)
+
+---
+
+## Hva du trenger
+
+| | |
+|---|---|
+| **Mac** | Apple Silicon: M1, M1 Pro, M2, M3, M4 |
+| **RAM** | 16 GB anbefales. 8 GB fungerer med den lille modellen |
+| **Disk** | 30 GB ledig (22 GB til modellen) |
+| **Nett** | Trenger 22 GB nedlasting |
+| **Tid** | 15–20 min for installasjon |
+
+Ingen CUDA, ingen NVIDIA, ingen Python-pakker å installere manuelt.
+
+---
+
+## Installasjon
+
+### 1. Last ned
+
+```bash
+git clone https://github.com/SurgeonTalus/fish-drama3-norsk.git
+cd fish-drama3-norsk
+```
+
+### 2. Hent runtime og modell
+
+Runtime-en er ferdigbygd for macOS med Metal. Modellen er den offisielle
+Drama 3 i Q4_KS-kvantisering.
+
+```bash
+mkdir -p bin modeller
+
+# Runtime (~32 MB) — audio.cpp, bygget for macOS arm64 Metal
+curl -L -o runtime.tar.gz \
+  https://github.com/0xShug0/audio.cpp/releases/download/v0.9.2-drama3-base-small/audio-v0.9.2-drama3-base-small-bin-macos-arm64-metal.tar.gz
+tar -xzf runtime.tar.gz -C bin --strip-components=1
+
+# Modellen (22 GB) — kvantisert versjon av fishaudio/drama-3
+curl -L -o modeller/drama3-Q4_K_S.gguf \
+  https://huggingface.co/Jmica/Drama-3-GGUF/resolve/main/drama-3-backbone-4bit-experts-Q4_K_S.gguf
+```
+
+### 3. Trenger du ffmpeg?
+
+Bare hvis du vil lage en referansestemme fra en egen opptakelse:
+
+```bash
+brew install ffmpeg
+```
+
+### 4. Sjekk at det virker
+
+```bash
+./bin/audiocpp_cli --version
+```
+
+Du skal se `backends: cpu,metal`.
+
+---
+
+## Lage tale
+
+### Med en ferdig referansestemme
+
+Referansen er et kort opptak (10–30 sekunder) av stemmen din, med et
+transskript. Filen `audio/referanse_stemme.wav` i dette repoet er et eksempel.
+
+```bash
+./bin/audiocpp_cli \
+  --task clon \
+  --family fish_drama3 \
+  --backend metal \
+  --mode offline \
+  --model modeller/drama3-Q4_K_S.gguf \
+  --voice-ref audio/referanse_stemme.wav \
+  --request-option "reference_text=I dag skal vi lage et ukebladportrett med collage! Men hva er egentlig et ukebladportrett? Et portrett er et bilde av et menneske. Når vi lager et ukebladportrett, bruker vi bilder fra blader til å sette sammen et nytt ansikt." \
+  --text "Mal et A4-ark i grønne og gule nyanser. Mal en stor sirkel på 25,5 cm og fyll hele sirkelen med farge." \
+  --max-tokens 400 --seed 42 --threads 10 \
+  --session-option fish_drama3.disk_experts=true \
+  --session-option fish_drama3.expert_cache_size=8 \
+  --session-option fish_drama3.cpu_expert_layers=0 \
+  --session-option fish_drama3.context_length=2048 \
+  --session-option fish_drama3.codec_backend=cpu \
+  --session-option fish_drama3.codec_encoder_chunk_samples=65536 \
+  --out tale.wav
+```
+
+Åpne i Finder:
+
+```bash
+open tale.wav
+```
+
+### Hva flaggene gjør
+
+| Flagg | Hvorfor |
+|---|---|
+| `fish_drama3.disk_experts=true` | **Nødvendig på 16 GB.** Ekspertene ligger på disk og hentes inn mens de brukes. |
+| `fish_drama3.expert_cache_size=8` | Hvor mange eksperter som holdes i RAM om gangen. 8 = minst RAM. 32 = færre disklesninger. |
+| `fish_drama3.cpu_expert_layers=0` | Ekspertene kjøres fortsatt på GPU-en. Bare vektene strømmes. |
+| `fish_drama3.codec_backend=cpu` | Flytter lydkoderen (747 MB) ut av GPU-minnet. Uten dette kan prosessen bli avsluttet. |
+| `fish_drama3.codec_encoder_chunk_samples=65536` | Deler referanse-encodingen i biter, slik at toppminnet blir lavere. |
+| `fish_drama3.context_length=2048` | Plass til tekst + referanse + generert lyd. |
+| `--max-tokens 400` | Maks antall lydbiter. 21,5 biter ≈ 1 sekund. |
+
+### Med egen stemme
+
+```bash
+# 1. Gjør opptaket klar: 44,1 kHz, mono, 8-12 sekunder
+ffmpeg -i min-opptak.m4a -t 10 -ar 44100 -ac 1 -c:a pcm_s16le referanse.wav
+
+# 2. Skriv ned hva du sa i referanse.wav
+echo "Her er teksten du sa i opptaket" > referanse_tekst.txt
+```
+
+Bruk så `--voice-ref referanse.wav` og
+`--request-option "reference_text=$(cat referanse_tekst.txt)"`.
+
+**Transkriptet er viktig.** Uten et korrekt transkript blir stemmen uklar.
+
+---
+
+## Lydklipp
+
+Hør selv. Alle filene ligger i `audio/`.
+
+| Fil | Hva det er |
+|---|---|
+| `norsk_full_q4k.wav` | Drama 3 full, norsk — **riktig** |
+| `valid_full_offload.wav` | Drama 3 full, norsk, målt med disk-offloading (RTF 24,0) |
+| `norsk_small_ubrukelig.wav` | Drama 3 liten, norsk — **ubrukelig** |
+| `cosyvoice_norsk.wav` | CosyVoice3 + norsk LoRA, norsk |
+| `chatterbox_norsk.wav` | Chatterbox v3, norsk |
+| `engelsk_full_q4k.wav` | Drama 3 full, engelsk — ren engelsk |
+| `cosyvoice_engelsk.wav` | CosyVoice3, engelsk — **høres ut som svensk** |
+| `chatterbox_engelsk.wav` | Chatterbox v3, engelsk — **høres ut som norsk** |
+| `pruned_100_alle_lag.wav` | Pruned til 100 eksperter — **ødelagt** (pruning uten trening) |
+| `pruned_100_uten_destillasjon.wav` | Pruned med beskyttede lag — **ødelagt** (degenerert repetisjon) |
+| `referanse_stemme.wav` | Referansestemmen som ble brukt |
+
+---
+
+## Sammenligning av modellene
+
+Full oversikt med alle målinger: [`docs/RAPPORT.md`](docs/RAPPORT.md).
+
+### Presisjon
+
+| Modell | Språk | Ordfeilrate | Whisper sier språket er |
+|---|---|---|---|
+| **Drama 3 Q4_K_S** | norsk | **18–36 %** | norsk ✓ |
+| **Drama 3 Q4_K_S** | engelsk | **6 %** | engelsk ✓ |
+| CosyVoice3 + LoRA | norsk | 32 % | norsk ✓ |
+| CosyVoice3 + LoRA | engelsk | 12 % | **svensk** ✗ |
+| Chatterbox v3 | norsk | 59 % | norsk ✓ |
+| Chatterbox v3 | engelsk | 15 % | **norsk** ✗ |
+| Drama 3 IQ3_XXS | norsk | 59 % | norsk ✓ |
+
+Dette bekrefter en vanlig observasjon om CosyVoice: den har mer aksent og
+drifter mer. CosyVoice3 i denne testen hadde en norsk LoRA, og det er den som
+trakk engelsken mot norsk — og forbi, fordi modellen er språkbundet til
+referansen.
+
+Drama 3 ble trent på 83 språk og holder derfor språket uansett hvilken
+referanse du gir den.
+
+### Hastighet
+
+| Modell | RTF | Tid for 9 s norsk | Disk lest |
+|---|---|---|---|
+| Chatterbox v3 | **5,8** | 52 s | 0 |
+| CosyVoice3 + LoRA | **10,8** | 97 s | 0 |
+| Drama 3 IQ3_XXS | 11,2 | 100 s | 0 |
+| Drama 3 Q4_K_S | 28,8 | 259 s | 351 GB |
+
+Drama 3 er tregest fordi den er 35 milliarder parametere og må lese
+ekspertene fra disk. Til gjengjeld er den den mest norske.
+
+---
+
+## Pruning
+
+Du trenger ikke kjøre Drama 3 full. Vi har vist at man kan **kutte bort
+eksperter som aldri brukes**, direkte i modellfilen:
+
+```bash
+# 1. Samle routing-statistikk for norsk (kjører modellen over norsk tekst)
+#    og lager et bilde av hvilke eksperter norsk faktisk bruker
+python3 scripts/tekst_til_pt.py routing_no.txt routing_no.pt
+
+# 2. Kutt fra 256 til 100 eksperter per lag
+python3 scripts/prune_gguf.py \
+  --input modeller/drama3-Q4_K_S.gguf \
+  --output modeller/drama3-pruned-100.gguf \
+  --stats routing_no.pt --keep 100 --criterion mass
+```
+
+**Resultat: 21,78 GiB → 12,52 GiB, 6,3x raskere.** Ingen nedlasting av
+original-checkpointet, ingen 68 GiB intermediate-fil, ingen ny kvantisering.
+Det er en ren byte-kopiering.
+
+**Men:** uten router-refit og destillasjon ødelegger kuttet modellen
+kvaliteten. Det er et viktig negativt funn, dokumentert i
+[`docs/PRUNING.md`](docs/PRUNING.md).
+
+---
+
+## Ordbok
+
+Ord og forkortelser du møter i loggene og i dokumentasjonen.
+
+### Ytelse og minne
+
+| Forkortelse | Betydning | Forklaring |
+|---|---|---|
+| **RTF** | Real-Time Factor | Hvor mange ganger så lang tid brukte maskinen som lydens lengde. RTF 4,7 betyr at 1 sekund lyd tok 4,7 sekunder. **Lavere er bedre.** RTF 1,0 = «i sanntid». |
+| **WER** | Word Error Rate | Ordfeilrate. Andelen ord i den genererte lyden som er feil sammenlignet med teksten du skrev. **Lavere er bedre.** 0 % = ordrett. |
+| **CER** | Character Error Rate | Som WER, men per tegn. |
+| **VRAM** | Video RAM | Minne på grafikkortet. Finnes ikke på Mac — der deler CPU og GPU samme minne. |
+| **Unified memory** | Enhetsminne | Mac-teknologi der CPU og GPU deler ett minnespor. Derfor kan en Mac med 16 GB kjøre en 22 GB-modell. |
+| **Swap** | Byttefil | Når minnet er fullt, legger macOS data på disk. Mye swap = alt går trege, og prosesser kan bli avsluttet **uten varsel**. |
+| **Footprint** | Minnebruk | Hvor mye minne prosessen faktisk bruker. |
+
+### Modell og vekter
+
+| Forkortelse | Betydning | Forklaring |
+|---|---|---|
+| **TTS** | Text-to-Speech | Tale fra tekst. |
+| **ASR** | Automatic Speech Recognition | Tale til tekst. |
+| **MoE** | Mixture of Experts | En modell der bare noen «eksperter» aktiveres per ord. Drama 3 har 35 milliarder parametere, men bruker bare 3 milliarder om gangen. |
+| **A3B** | Active 3B | 35B totalt, 3B aktive per token. |
+| **GGUF** | GGML Format | Filformatet modellene ligger i. Kan leses direkte uten å pakke om. |
+| **Q4_K_S** | 4-bits kvantisering | Vektene er komprimert til 4 bit. Kvaliteten er nesten like god som full presisjon, men filen blir mye mindre. |
+| **IQ3_XXS** | 3-bits kvantisering | Enda mindre og raskere, men med mer kvalitetstap. |
+| **Q2_K** | 2-bits kvantisering | Minst mulig størrelse, størst kvalitetstap. |
+| **FP8 / BF16 / FP16** | Flyt-tallsformater | Full presisjon. 8-, 16- og 32-bit. |
+| **bpw** | Bits per weight | Biter per vekt. 2,13 bpw for Q4_K_S. Det er grunnen til at 35B-modellen blir 22 GB i stedet for 70 GB. |
+| **Pruning** | Beskjæring | å fjerne deler av en modell som ikke trengs. |
+| **Distillasjon** | — | Å lære en mindre modell å etterligne en større. |
+| **LoRA** | Low-Rank Adaptation | Liten ekstra treningsfil som tilpasser en stor modell. |
+| **Hadamard-rotasjon** | — | Matematisk transformasjon modellen bruker. Derfor kan ikke vanlig llama.cpp lese filene. |
+| **Routing** | — | Hvilke eksperter modellen velger for hvert ord. |
+
+### Runtime
+
+| Forkortelse | Betydning | Forklaring |
+|---|---|---|
+| **Metal** | — | Apples grafikk-API. Tilsvarer CUDA på NVIDIA-kort. |
+| **CUDA** | — | NVIDIAs grafikk-API. Drama 3 er bygget for dette. |
+| **Prefill** | — | Når modellen leser hele teksten og referansen på forhånd. Koster tid før talen begynner. |
+| **Decode** | — | Når modellen genererer lyd ord for ord. |
+| **Context / kontekstvindu** | — | Hvor mye tekst og lyd modellen holder i minnet samtidig. |
+| **KV-cache** | — | Mellomresultatene for hvert ord, så modellen ikke må regne ut igjen. Lager minne. |
+| **Ekspert-offloading** | — | Ekspertene ligger på disk og strømmes til RAM mens de brukes. |
+| **Ekspert-cache** | — | Hvor mange eksperter som holdes i RAM om gangen. |
+| **Codebook / MTP** | Multi-Token Prediction | Modellen lager lyd ved å velge fra et sett lydbiter. |
+
+---
+
+## Feilsøking
+
+**«Prosessen forsvinner med ingen feilmelding»**
+Macen har gått tom for minne, og macOS avslutter prosessen. Sjekk
+`sysctl vm.swapusage`. Løsning: `codec_backend=cpu` (allerede satt opp) og
+kortere referanse (8–12 sekunder).
+
+**«Norsk lyder rart»**
+- Sjekk at transkriptet i `reference_text` faktisk er det som ble sagt
+- Skriv tall ut som ord: «25,5 cm» blir ofte «5-12 cm»
+- Prøv den store modellen, ikke IQ3_XXS
+
+**«Det går utrolig langsomt»**
+Forventet med den store modellen. 33 sekunders tale tar ~16 minutter.
+Bruk kortere tekst, eller `CACHE_SIZE=32` for færre disklesninger.
+
+**«tensor type 142/143 is invalid» eller «unknown type»**
+Du bruker vanlig llama.cpp. Drama 3 krever Prism MLs fork eller audio.cpp.
+
+**«ffmpeg mangler»**
+```bash
+brew install ffmpeg
+```
+
+**«Feil ved lasting: tensor shape mismatch»**
+Modellfilen er kuttet feil. Kjør `scripts/prune_gguf.py` på nytt.
+
+---
+
+## Kilder og prosjekter
+
+### Prosjekter vi har brukt
+
+| Prosjekt | Hva det er | Lenke |
+|---|---|---|
+| **Fish Audio Drama 3** | Selve modellen. 35B MoE, 83 språk, Apache 2.0 | [huggingface.co/fishaudio/drama-3](https://huggingface.co/fishaudio/drama-3) |
+| **audio.cpp** | Runtime-en vi bruker. Rent C++, 62 modellfamilier, Metal-støtte | [github.com/0xShug0/audio.cpp](https://github.com/0xShug0/audio.cpp) |
+| **Drama 3-dokumentasjon** | All konfigurasjon for ekspert-offloading | [docs/models/fish_drama3.md](https://github.com/0xShug0/audio.cpp/blob/main/docs/models/fish_drama3.md) |
+| **JarodMica/Drama-3-GGUF** | GGUF-konverteringen vi bruker | [huggingface.co/Jmica/Drama-3-GGUF](https://huggingface.co/Jmica/Drama-3-GGUF) |
+| **pentacoxian-dev/drama3-small-GGUF** | Den lille modellen (IQ3_XXS) | [huggingface.co/pentacoxian-dev/drama3-small-GGUF](https://huggingface.co/pentacoxian-dev/drama3-small-GGUF) |
+| **PrismML-Eng/llama.cpp** | Prism MLs fork — også nødvendig for Drama 3 | [github.com/PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) |
+| **fish-speech** | Oppsream for modellen og lydkoderen | [github.com/fishaudio/fish-speech](https://github.com/fishaudio/fish-speech) |
+| **CosyVoice** | Alternativet vi sammenligner mot | [github.com/FunAudioLLM/CosyVoice](https://github.com/FunAudioLLM/CosyVoice) |
+| **Chatterbox** | Alternativet vi sammenligner mot | [github.com/resemble-ai/chatterbox](https://github.com/resemble-ai/chatterbox) |
+| **drama3-mac** | MLX-port av Drama 3, raskeste Mac-alternativet | [github.com/JordiPosthumus/drama3-mac](https://github.com/JordiPosthumus/drama3-mac) |
+| **CosyVoice MCP** | Verktøy for å generere lyd fra CosyVoice | via denne guiden |
+
+### Rapporter
+
+| Rapport | Innhold |
+|---|---|
+| [`docs/RAPPORT.md`](docs/RAPPORT.md) | Alle målinger: hastighet, presisjon, minne, modellsammenligning |
+| [`docs/PRUNING.md`](docs/PRUNING.md) | Hvordan pruningen fungerer, og hva som er vanskelig |
+| [`docs/METODE.md`](docs/METODE.md) | Testoppsettet, slik at resultatene kan reproduseres |
+
+### Drama 3-teknisk rapport
+
+[arxiv.org/abs/2610.18010](https://arxiv.org/abs/2610.18010) — «Fish Audio Drama 3 Technical Report»
+
+---
+
+## Lisens
+
+Denne guiden og scriptene er MIT-lisensiert.
+
+Modellene er under **Fish Audio Community License v1.0** — ikke MIT. Gratis for
+forskning og ikke-kommersiell bruk; begrenset kommersiell bruk under
+500 000 USD i årlig omsetning.
+
+Lydklippene i `audio/` er laget med forfatterens egen stemme som referanse,
+for å dokumentere resultatene.

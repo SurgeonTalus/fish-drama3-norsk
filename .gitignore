@@ -1,0 +1,10 @@
+# Store filer
+bin/
+modeller/
+output/
+referanse/
+*.gguf
+*.pt
+
+.DS_Store
+__pycache__/
