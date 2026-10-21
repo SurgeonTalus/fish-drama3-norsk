@@ -19,6 +19,44 @@ samme seed (42), samme maskin, `expert_cache_size=32`.
 | CosyVoice3 + norsk LoRA | ~1 GB | — | 8 / 10 | «allerede troverdig» |
 | **Drama 3 Q4/Q2-miks** | 18,94 GiB | **25,0 %** | **ikke hørt ennå** | se nedenfor |
 
+## Verifikasjon: modellen mot referansen
+
+Den sterkeste kvalitetsprøven vi har gjort. Referansen
+(`audio/referanse_stemme.wav`, 8 s) og modellen sier **nøyaktig samme
+tekst**, så det er ingen tvil om hva som skal bli sagt:
+
+| Fil | Innhold |
+|---|---|
+| `output/verifisering/00_referanse_original.wav` | referansen, uendret |
+| `output/verifisering/01_modell_sier_samme.wav` | modellens versjon av samme tekst |
+| `output/verifisering/TRANSKRIPT.txt` | transkriptet |
+
+> **«Det er en 99 % klone. Jeg er helt sikker på at det er meg — fortelleren.
+> Jeg ville ikke lagt merke til det hvis jeg ikke hadde visst. Det er vanvittig
+> når det genererer det samme som inputen.»**
+
+Dette er verdt å merke seg, fordi det er *ikke* selvfølgelig:
+
+- **Drama 3 kloner ikke en bølgeform, men et tokensett.** Referansen kodes
+  inn i modellens eget semantiske tokenrom, og stemmen blir en fortsettelse
+  av referansen inne i modellen. Derfor er «samme tekst som inputen» det
+  letteste tilfellet.
+- **Rutingen er flat** (193–255 av 256 eksperter per lag). Det finnes ingen
+  liten «stemme-ekspertgruppe» som kunne bli ødelagt — identiteten ligger
+  spredt i hele modellen.
+- Likevel overlever den **4-bits kvantisering av en 35B MoE** der bare
+  ~17 % av ekspertene er resident om gangen.
+
+**Forbehold:** «samme tekst som referansen» er det lette tilfellet for
+enhver klone-modell. Den reelle prøven er ny tekst, og den er avgjort
+overfor: **9,5 / 10** for Q4_K_S.
+
+**Og resultatet validerer referansetekst-retningen** (se `RETTING.md`): de
+dårlige ordfeilratene vi så tidligere var måleverktøyets feil, ikke
+modellens.
+
+---
+
 ## Hva kvalitetsforskjellene faktisk er
 
 Det er ikke «norsk mot ikke-norsk». Alle tre Drama 3-modellene snakker

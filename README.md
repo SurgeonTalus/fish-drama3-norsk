@@ -23,6 +23,19 @@ Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 | **Hastighet** | **RTF 17,1** mot 25,5 uten parallellisering |
 | **Minne** | 9,5 GB peak — får plass på 16 GB |
 
+### Kvalitetsverifikasjon
+
+Referansen (8 s) og modellen sier **nøyaktig samme tekst** — se
+`output/verifisering/`:
+
+> «Det er en 99 % klone. Jeg er helt sikker på at det er meg — fortelleren.
+> Jeg ville ikke lagt merke til det hvis jeg ikke hadde visst.»
+
+Det overlever 4-bits kvantisering av en 35B MoE der bare ~17 % av
+ekspertene er resident om gangen, og et routing-bilde som er flatt
+(193–255 av 256 eksperter per lag). Detaljene i
+[docs/LYTTETEST.md](docs/LYTTETEST.md).
+
 **Sett opp alt med ett skript:**
 
 ```bash
