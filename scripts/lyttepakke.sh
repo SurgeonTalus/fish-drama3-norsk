@@ -25,7 +25,7 @@ mkdir -p "$UT"
 
 # Vanlig norsk bokmaal, ingen vanskelige ord, ingen tall.
 # (Tall og sjarvord var nettopp der Whisper small bommet, uansett modell.)
-TXT="I går gikk jeg en tur langs elven sammen med min sønn. Vi snakket om sommerferien og om det nye huset vi skal flytte inn i. Det skal bli fint, sa synes jeg."
+TXT="I går gikk jeg en tur langs elven sammen med min sønn. Vi snakket om sommerferien og om det nye huset vi skal flytte inn i. Det skal bli fint, synes jeg."
 REF_TXT="${REF_TXT:-$ROOT/audio/referansetekst_8s.txt}"
 REF="$(cat "$REF_TXT")"
 
