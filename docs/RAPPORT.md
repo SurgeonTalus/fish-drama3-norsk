@@ -3,6 +3,25 @@
 Alle målinger gjort på **Apple M1 Pro MacBook Pro, 16 GB unified memory,
 macOS 27.0.1**, med audio.cpp `0.9.2-drama3-base-small` (Metal-backend).
 
+> ## ⚠️ Tallene i denne rapporten er delvis foreldete
+>
+> Vi fant to målefeil etter at målingene var gjort:
+>
+> 1. **Referanseteksten var lengre enn referanselyden.** Vi ga modellen fire
+>    (eller seks) setninger mens 8-sekundersklippen bare inneholdt tre.
+>    Drama 3 bruker referanselyden som aksentkilde, så inkonsistent betinging
+>    ga nøyaktig symptomene vi tilskrev kvantiseringen.
+> 2. **Måleverktøyet var for svakt.** Whisper `small` med tvunget norsk har
+>    så høy støyflyt at den samme modellen fikk 18,2 % og 36,4 % WER
+>    avhengig av referanseteksten. Vi bruker nå NB AI Labs norske wav2vec2.
+>
+> Se [`RETTING.md`](RETTING.md) for detaljene, og
+> [`EXPERTCACHE.md`](EXPERTCACHE.md) for cache-målingene.
+>
+> **Påstanden om at Q2_K er dårligere på norsk er trukket tilbake** inntil
+> den er målt på nytt. Vi gjengir de gamle tallene her for etterprøving, men
+> de skal ikke leses som kvalitetsdommer.
+
 ---
 
 ## Sammendrag
@@ -20,8 +39,8 @@ Fire modeller ble testet med **samme tekst**, **samme referansestemme**,
 
 **Tre hovedfunn:**
 
-1. **Drama 3 snakker norsk.** Ordfeilrate 18–36 %, og Whisper identifiserer
-   språket automatisk som norsk.
+1. **Drama 3 snakker norsk.** Whisper identifiserer språket automatisk som
+   norsk, og den norske ASR-en skriver ut riktig norsk ortografi.
 
 2. **Den lille modellen snakker ikke norsk.** Den er destillert på japansk og
    engelsk. Norsk blir rot.
@@ -29,6 +48,13 @@ Fire modeller ble testet med **samme tekst**, **samme referansestemme**,
 3. **CosyVoice3 og Chatterbox faller ut av engelsk.** Med norsk referanse blir
    CosyVoice3 sitt engelsk til svensk, og Chatterbox sitt til norsk. Drama 3
    holder språket.
+
+**Et fjerde funn, som kom etterpå:**
+
+4. **Ekspert-cachen var den viktigste innstillingen.** Vi kjørte med
+   `expert_cache_size=8` — nøyaktig så stor som ett tokens ekspertsett.
+   Å heve den til 16 senket RTF fra 44,2 til 27,4 uten å røre modellen.
+   **Alle RTF-tall i tabellen over er derfor pessimistiske.**
 
 ---
 
@@ -38,6 +64,13 @@ Fire modeller ble testet med **samme tekst**, **samme referansestemme**,
 
 Whisper `small`, mot referenceteksten. Teksten normaliseres for skilletegn og
 store/små bokstaver. Levenshtein-avstand på ordnivå delt på referanselengde.
+
+**Denne metoden er foreldet.** Den viste seg å ha så høy støyflyt at den
+samme modellen fikk 18,2 % og 36,4 % WER avhengig av referanseteksten.
+Den erstattes av `NbAiLab/nb-wav2vec2-1b-bokmaal` (norsk ASR, 6,33 % WER på
+norsk referansemateriale). Whisper `small` beholdes bare til auto-språkdeteksjon.
+Skript: `scripts/maal_norsk.py` (én fil) og `scripts/maal_sett.py` (hele settet).
+Se [`RETTING.md`](RETTING.md).
 
 «Auto-språk» er hva Whisper selv finner ut i lyden, uten at språket er
 tvunget. Det er avslørende for aksentdrift.
@@ -61,7 +94,16 @@ riktige tallet å planlegge med.
 > Ma et A4-ark i grønne og gulene i angse. Ma en stor cirkel på 55 cm og fyl
 > hele cirkelen med ferdige.
 
-Auto-språk er fortsatt `no`, så dette er norsk — men dårligere enn Q4_K_S.
+Auto-språk er fortsatt `no`, så dette er norsk — **ikke** engelsk.
+
+> **Påstanden «dårligere enn Q4_K_S» er trukket tilbake.** Vi tilskrev
+> forskjellen kvantiseringen, men målingen ble tatt med en referansetekst som
+> ikke matchet referanselyden — og Drama 3 bruker nettopp referanselyden som
+> aksentkilde. Aksentdriften i transkripsjonen er reell (*Mal* → **Ma**,
+> *gule* → **gole**, *farge* → **ferge**, *25,5 cm* → uforståelig), men hvor
+> mye som er kvantisering og hvor mye som er ødelagt betinging, er uvisst
+> inntil det er målt på nytt.
+
 Merk at Q2_K ikke kan kjøres uten disk-offloading på 16 GB.
 
 **CosyVoice3 + norsk LoRA — 31,8 %**
