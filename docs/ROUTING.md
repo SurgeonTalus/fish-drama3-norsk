@@ -90,6 +90,76 @@ Bildet er:
 | Pinning av varme eksperter | **implementert og testet** | gir omtrent samme treffrate som LRU; nyttig for å gjøre valget deterministisk |
 | Per-ekspert routing-observasjon | **implementert** | `fish_drama3.routing_stats_path` |
 
+---
+
+## Tillegg: lag-fordeling, konsentrasjon og pinning
+
+### Lag-fordelingen er uniform — det finnes ingen varmt lag
+
+| | tilganger | andel |
+|---|---|---|
+| Sterkeste lag (0) | 335 | 2,79 % |
+| Svakeste lag (38) | 262 | 2,18 % |
+| Forhold | 1,28× | |
+
+Alle 40 lag brukes omtrent like mye. **Det finnes ingen gruppe lag som
+dominerer**, så det gir ingen mening å «låse de 32 mest brukte lagene»
+i den forstanden — alle lag trengs like mye.
+
+### Det som varierer er konsentrasjonen, og den varierer systematisk med dybde
+
+| | lag 0 | lag 12 | lag 25 | lag 39 |
+|---|---|---|---|---|
+| Unike eksperter brukt | **255** av 256 | 227 | 202 | 193 |
+| topp-8 dekning | **8,1 %** | 12,7 % | 13,8 % | 18,6 % |
+| topp-32 dekning | 24,5 % | 31,6 % | 34,4 % | 38,8 % |
+| topp-64 dekning | 43,0 % | 46,9 % | 51,1 % | 51,0 % |
+| topp-128 dekning | 62,1 % | 67,8 % | 73,8 % | 75,3 % |
+
+**Tidlige lag er flate: de bruker nesten alle 256 ekspertene, og de
+varmeste åtte står bare for 8 % av tilgangene. Sene lag er konsentrerte.**
+
+Det forklarer drama3-small sitt funn. Lag 0, 1 og 2 er de flatteste
+(255, 251 og 255 unike eksperter) — altså lagene som *mister mest* når
+man fjerner eksperter. Lag 36 har 203 unike og topp-8 på 15,5 %.
+
+**Konsekvens for kvantisering:** lag med flat routing tåler ikke bare
+mindre presisjon — de tåler det dårligere, fordi ingen enkelt ekspert
+kan kompensere for en annen.
+
+### Pinning: simulert med implementasjonens egen eviction-regel
+
+Vi simulerte LRU-cachen på den ekte tilgangssekvensen, med nøyaktig samme
+regel som `disk_expert_weight_store.cpp`: en låst ekspert kastes ikke ut
+så lenge en ulast slot finnes, og når de låste ikke får plass, skjøver de
+hverandre i LRU-rekkefølge.
+
+| slots | uten lås | lås 8 | lås 16 | lås 32 | lås 64 |
+|---|---|---|---|---|---|
+| 32 | 19,9 % | 24,6 % | 27,9 % | **31,6 %** | 27,8 % |
+| 64 | 36,6 % | 38,6 % | 40,6 % | 43,5 % | **46,0 %** |
+| 96 | 50,6 % | 51,5 % | 52,6 % | 54,4 % | **56,2 %** |
+| 128 | 63,1 % | 63,4 % | 63,9 % | 64,8 % | **65,9 %** |
+
+Mønsteret er entydig: **optimalt antall låste ≈ antall slots.** Lås like
+mange som du har plass til.
+
+**Men simuleringen er for optimistisk, og det viser den ekte målingen:**
+
+| | simulert | målt |
+|---|---|---|
+| LRU, 32 slots | 19,9 % | **40,0 %** |
+| pin 64, 32 slots | 27,8 % | **39,3 %** |
+
+Den ekte treffraten er dobbelt så høy. Årsaken er at den ekte
+tilgangssekvensen har **sterk tidskorrelasjon** — naboppler deler
+eksperter — og LRU utnytter det.
+
+**Konklusjon: pinning gir lite i praksis.** De låste ekspertene tar
+plass fra LRU-delen, som gjør mer nytte, fordi LRU allerede fanger det
+varme settet. Det er bare å heve `expert_cache_size` så langt RAM
+tillater.
+
 ## Instrumenteringen
 
 To nye session-options i audio.cpp:
