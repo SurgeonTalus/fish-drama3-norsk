@@ -166,12 +166,34 @@ To innstillinger i `scripts/innstillinger.json` styrer dette:
 | Nøkkel | Standard | Betydning |
 |---|---|---|
 | `idle_unload_ms` | 600 000 | modellen frigjøres automatisk etter 10 min i ro |
-| `min_free_memory_mb` | 4 096 | serveren **later ikke** modellen hvis mindre enn 4 GB er ledig |
+| `min_free_memory_mb` | 0 | serveren **later ikke** modellen hvis mindre enn dette er ledig. 0 = av |
 
-`min_free_memory_mb` er grunnen til at du får `503 Service Unavailable`
-når LLM-en har spist minnet: serveren sier «nei, ikke nå» i stedet for å
-bygge opp swap. Vent til minnet frigjøres, eller stopp LLM-en mens du
-genererer.
+#### Hvorfor minne-guarden står av
+
+Guarden var satt til 4 096 MB, og den avviste en modell som passer fint:
+
+```
+cannot load model 'drama3': estimated 32.79 GiB + 4096 MiB headroom exceeds
+available host memory (5.92 GiB)
+```
+
+Serverens estimat er `vekt × 1,5 + 128 MiB` (`app/server/model_memory.cpp`).
+Det forutsetter at **hele** modellen ligger i RAM. Det vet ingenting om
+`fish_drama3.disk_experts`, som er hele poenget i denne oppsettsetningen:
+ekspertene leses fra disk, og bare `expert_cache_size` av dem holdes i RAM.
+
+For modellen på 21,78 GiB blir estimatet 32,79 GiB — 4× mer enn den målte
+toppen på 8 415 MB med cache 32. Guarden ville altså avvist en modell som
+passer. Den er derfor slått av (0 er også upstream-standarden; guarden er
+opt-in).
+
+Vil du ha den på likevel? Sett `min_free_memory_mb` til en verdi, men da må
+den være lavere enn ledig minn minus estimatet, altså negativt i praksis for
+denne modellen. Guarden kan bare brukes på modeller som passer fullt ut i RAM.
+
+Den reelle beskyttelsen mot swap er `idle_unload_ms` (modellen går ut av
+minnet etter 10 min i ro) og MCP-laget, som sjekker ledig minne før den
+kaller serveren.
 
 ### Cache-størrelse når annet kjører
 

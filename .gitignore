@@ -8,3 +8,7 @@ referanse/
 
 .DS_Store
 __pycache__/
+
+# Kjøreartefakter fra serveren
+server/server.log
+server/server.pid

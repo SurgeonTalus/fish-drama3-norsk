@@ -189,10 +189,21 @@ def stop():
 def status():
     s = last_inn()["server"]
     pid = kjoerer()
+    sys.path.insert(0, os.path.join(ROT, "scripts"))
+    import mac_memory
+    minne = mac_memory.system_minne()
+    print("  System:")
+    if "total_mb" in minne:
+        print(f"    fysisk {minne['total_mb']} MB, ledig {minne.get('ledig_mb', '?')} MB")
+    if "swap_brukt_mb" in minne:
+        print(f"    swap {minne['swap_brukt_mb']} / {minne.get('swap_total_mb', '?')} MB")
     if not pid:
         print("  Serveren kjører ikke.")
         return 1
-    print(f"  Kjører (pid {pid}) på {base_url(s)}")
+    fp = mac_memory.prosess_footprint(pid)
+    print(f"  Server (pid {pid}) på {base_url(s)}")
+    if fp:
+        print(f"    fysisk footprint: {fp/1048576:.0f} MB")
     try:
         with urllib.request.urlopen(base_url(s) + "/v1/models", timeout=5) as r:
             data = json.loads(r.read())
