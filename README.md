@@ -22,13 +22,29 @@ Målt på **Apple M1 Pro MacBook Pro, 16 GB RAM, macOS 27.0.1**.
 | **Cache** | `expert_cache_size=32` (64–80 når du har RAM til det) |
 | **Parallelle lesninger** | `expert_read_threads=16` |
 | **Hastighet** | **RTF 18,7** med cache 32, **17,1** med 64, **15,3** med 80 |
-| **Minne** | 8,4 GB peak med cache 32 — får plass på 16 GB |
+| **Minne** | 7,4 GB fysisk footprint med cache 32 — se advarselen under |
 
 ```bash
 python3 scripts/server.py start          # start serveren
 python3 scripts/server.py snak "Hei hei"  # lag lyd
 python3 scripts/server.py frigi           # frigjør RAM når du er ferdig
 ```
+
+> **Merk: modellen tar 7,4 GB av de 16 GB mens den ligger i minnet.**
+> Det er plass til den *alene*, men ikke samtidig med en LLM, Draw Things
+> og et bildegenereringsverktøy. På en maskin med alt annet kjørende ble
+> RTF 18,7 → **54,79**, fordi systemet swappet: serveren hadde 4,7 millioner
+> sideinnlastinger.
+>
+> Derfor: `python3 scripts/server.py frigi` når du er ferdig med lyden, og
+> MCP-laget laster modellen automatisk og loser den igjen rett etter hvert
+> klipp. Vent er `idle_unload_ms` (10 min) — alt som kjører i mellomtiden
+> taper minne til modellen.
+>
+> `min_free_memory_mb` i `scripts/innstillinger.json` står på **0** (av).
+> Serverens egen estimat er vekten × 1,5 = 32,79 GiB for en 21,78 GiB
+> modell, altså 4× mer enn den målte toppen: guarden ville avvist en modell
+> som passer fint. Se `SETUP.md` for hele forklaringen.
 
 **Servern er den anbefalte måten å kjøre.** Modellen lastes én gang i stedet
 for ved hver forespørsel, referansens codec-koding og ryggrad-prefill gjøres
