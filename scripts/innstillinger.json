@@ -259,6 +259,7 @@
     "threads": 8,
     "expert_cache_size": 32,
     "expert_read_threads": 16,
+    "drop_expert_cache": false,
     "idle_unload_ms": 600000,
     "min_free_memory_mb": 0,
     "kommentar": "idle_unload_ms: modellen loseres fra minnet etter 10 min i ro, saa en LLM kan fa minnet tilbake uten aa stoppe serveren. min_free_memory_mb: 0 = guarden av. Den foer var 4096, men serverens minneestimat er vekten x 1,5 + 128 MiB = 32,79 GiB for en 21,78 GiB modell - det forutsetter at HELE modellen ligger i RAM, og vet ingenting om disk_experts. Med cache 32 er den malte topp-footprinten 8 415 MB, saa guarden avviste en modell som passer fint. Med 0 slipper serveren gjennom; beskyttelsen mot swap ligger i stedet i MCP-laget, som sjekker ledig minne foer den kaller. expert_cache_size: 32 spaar 1,1 GB hard RAM mot cache 64, til kostnad av 9,7 % tid. Riktig valg naar en LLM kjorer samtidig; 80 hvis du vil ha fart og har RAM til det."

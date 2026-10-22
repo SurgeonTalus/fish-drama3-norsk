@@ -77,6 +77,7 @@ def bygg_konfig():
             "fish_drama3.disk_experts": "true",
             "fish_drama3.expert_cache_size": str(s["expert_cache_size"]),
             "fish_drama3.expert_read_threads": str(s["expert_read_threads"]),
+            "fish_drama3.drop_expert_cache": str(bool(s.get("drop_expert_cache", False))).lower(),
             "fish_drama3.cpu_expert_layers": "0",
             "fish_drama3.context_length": "2048",
             "fish_drama3.codec_backend": "cpu",
