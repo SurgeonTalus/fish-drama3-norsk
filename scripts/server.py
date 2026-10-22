@@ -60,6 +60,12 @@ def bygg_konfig():
         os.path.join(ROT, "audio", "referansetekst_8s.txt"), encoding="utf-8"
     ).read().strip()
 
+    # Miljoevariablene lar et annet program (PPTXFast) be om en bestemt
+    # cache-stoerrelse, uten aa skrive i innstillinger.json. Uten dem foelger
+    # konfigurasjonen filen.
+    cache = int(os.environ.get("DRAMA3_CACHE") or s["expert_cache_size"])
+    read_threads = int(os.environ.get("DRAMA3_READ_THREADS") or s["expert_read_threads"])
+
     cfg = {
         "host": s["host"],
         "port": s["port"],
@@ -75,8 +81,8 @@ def bygg_konfig():
         "model_spec_override": sti(s["spec_override"]),
         "default_session_options": {
             "fish_drama3.disk_experts": "true",
-            "fish_drama3.expert_cache_size": str(s["expert_cache_size"]),
-            "fish_drama3.expert_read_threads": str(s["expert_read_threads"]),
+            "fish_drama3.expert_cache_size": str(cache),
+            "fish_drama3.expert_read_threads": str(read_threads),
             "fish_drama3.drop_expert_cache": str(bool(s.get("drop_expert_cache", False))).lower(),
             "fish_drama3.cpu_expert_layers": "0",
             "fish_drama3.context_length": "2048",
@@ -153,7 +159,7 @@ def start():
         try:
             with urllib.request.urlopen(url + "/health", timeout=2) as r:
                 r.read()
-            print(f"  Klar. Modell: {s['modell']}, cache {s['expert_cache_size']}")
+            print(f"  Klar. Modell: {s['modell']}, cache {cache}")
             print(f"  Logg: {LOGFIL}")
             return 0
         except (urllib.error.URLError, OSError):
