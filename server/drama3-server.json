@@ -12,7 +12,7 @@
     "fish_drama3.disk_experts": "true",
     "fish_drama3.expert_cache_size": "32",
     "fish_drama3.expert_read_threads": "16",
-    "fish_drama3.drop_expert_cache": "false",
+    "fish_drama3.drop_expert_cache": "true",
     "fish_drama3.cpu_expert_layers": "0",
     "fish_drama3.context_length": "2048",
     "fish_drama3.codec_backend": "cpu",

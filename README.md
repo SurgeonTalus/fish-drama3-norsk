@@ -33,8 +33,13 @@ python3 scripts/server.py frigi           # frigjør RAM når du er ferdig
 > **Merk: modellen tar 7,4 GB av de 16 GB mens den ligger i minnet.**
 > Det er plass til den *alene*, men ikke samtidig med en LLM, Draw Things
 > og et bildegenereringsverktøy. På en maskin med alt annet kjørende ble
-> RTF 18,7 → **54,79**, fordi systemet swappet: serveren hadde 4,7 millioner
-> sideinnlastinger.
+> RTF 18,7 → **163,7**, fordi systemet swappet: serveren hadde 1,7 millioner
+> sideinnlastinger per klipp.
+>
+> **Løsningen er `drop_expert_cache=true`** (standard fra nå): ekspertenes
+> sider kastes ut av page cache med én gang de er lest, så modellen ikke
+> fyller RAM-en og jager ut alt annet. Samme klipp, samme maskin, samme
+> press: **RTF 23,5** — og sha256-identisk lyd.
 >
 > Derfor: `python3 scripts/server.py frigi` når du er ferdig med lyden, og
 > MCP-laget laster modellen automatisk og loser den igjen rett etter hvert
@@ -286,6 +291,7 @@ open tale.wav
 | Flagg | Hvorfor |
 |---|---|
 | `fish_drama3.disk_experts=true` | **Nødvendig på 16 GB.** Ekspertene ligger på disk og hentes inn mens de brukes. |
+| `fish_drama3.drop_expert_cache=true` | **Kaster ekspertenes sider ut av page cache etter lesning.** Modellen er større enn RAM, så uten dette fyller page cache seg med modellens sider og macOS kaster ut alt annet. Målt under press: RTF 163,7 → 23,5, og lyden er bit-identisk. |
 | `fish_drama3.expert_cache_size=32` | Hvor mange eksperter som holdes i RAM om gangen. 32 = 8,4 GB peak. 64 = 9,5 GB. 80 = 10,3 GB. |
 | `fish_drama3.cpu_expert_layers=0` | Ekspertene kjøres fortsatt på GPU-en. Bare vektene strømmes. |
 | `fish_drama3.codec_backend=cpu` | Flytter lydkoderen (747 MB) ut av GPU-minnet. Uten dette kan prosessen bli avsluttet. |
